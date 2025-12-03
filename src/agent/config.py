@@ -34,6 +34,9 @@ class SOSConfig:
     gemini_model: str = "gemini-2.0-flash-exp"
     openai_model: str = "gpt-4o"
     inception_model: str = "mercury-coder"
+    ai_language: str = field(
+        default_factory=lambda: os.getenv("SOS_AI_LANGUAGE", "en")
+    )  # "en" or "cs"
 
     # Tool Configuration
     allowed_tools: List[str] = field(

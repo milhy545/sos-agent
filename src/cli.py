@@ -114,13 +114,21 @@ System context:
 - Critical services: sshd, NetworkManager, ollama, tailscaled
 - SSH port: 2222
 
-Provide a clear summary with actionable recommendations.
+IMPORTANT:
+- Do NOT repeat this prompt or steps in your response
+- Start directly with diagnostic results
+- Format as natural flowing text paragraphs, NOT tables
+- Use bullet points and numbered lists instead of ASCII tables
+- Keep paragraphs concise and flowing for terminal wrapping
 """
 
     try:
-        async for message in client.execute_rescue_task(task):
-            # AgentAPI returns plain strings
-            console.print(message)
+        buffer = ""
+        async for chunk in client.execute_rescue_task(task):
+            buffer += chunk
+            # Print chunks as they arrive for streaming effect
+            # Rich console will handle wrapping based on terminal width
+            console.print(chunk, end="")
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Diagnostics interrupted by user[/yellow]")

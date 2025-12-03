@@ -83,8 +83,30 @@ def setup_wizard():
         print("\n👋 Setup cancelled. Run 'sos setup' when ready!")
         sys.exit(0)
 
+    # Language selection
+    print("\n" + "=" * 60)
+    print("  🌍 Language Selection / Výběr Jazyka")
+    print("=" * 60)
+    print("Choose AI response language / Vyberte jazyk odpovědí AI:")
+    print("  1️⃣  English (default)")
+    print("  2️⃣  Čeština (Czech)")
+    print()
+
+    language_choice = input("Enter choice (1 or 2) [1]: ").strip() or "1"
+
+    if language_choice == "2":
+        ai_language = "cs"
+        language_name = "Čeština"
+        print(f"✅ Jazyk nastaven: {language_name}")
+    else:
+        ai_language = "en"
+        language_name = "English"
+        print(f"✅ Language set: {language_name}")
+
     # Collect API keys
-    api_keys = {}
+    api_keys = {
+        "SOS_AI_LANGUAGE": ai_language
+    }
 
     # Gemini (recommended)
     print("\n" + "=" * 60)

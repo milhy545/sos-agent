@@ -57,6 +57,7 @@ class SOSAgentClient:
             self.client = InceptionClient(
                 api_key=config.inception_api_key,
                 model=config.inception_model,
+                language=config.ai_language,
             )
             self.client_type = "inception"
         else:
