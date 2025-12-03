@@ -1,0 +1,21 @@
+# CODEOWNERS for SOS Agent
+# These owners will be automatically requested for review when someone opens a PR
+
+# Default owners for everything in the repo
+*       @milhy545
+
+# Core agent code
+/src/agent/     @milhy545
+
+# Security-critical files
+.env.example    @milhy545
+.gitignore      @milhy545
+/.github/       @milhy545
+
+# Documentation
+/docs/          @milhy545
+*.md            @milhy545
+
+# Configuration
+pyproject.toml  @milhy545
+install.sh      @milhy545
