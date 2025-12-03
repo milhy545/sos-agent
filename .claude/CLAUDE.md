@@ -266,4 +266,75 @@ A rescue operation is successful when:
 
 ---
 
+## 🤖 AI Agent Collaboration Notes
+
+### For AI Agents Working on This Project
+
+**BEFORE MAKING ANY CHANGES:**
+
+1. ✅ **Read [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md)** - Contains critical lessons learned and bug fixes
+2. ✅ **Read [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)** - Understand system design
+3. ✅ **Check [CHANGELOG.md](../CHANGELOG.md)** - See what's been done
+4. ✅ **Review official API docs** - Don't guess, check documentation first!
+
+### Critical Issues Already Resolved (DO NOT Re-Fix)
+
+#### ❌ Mercury Narrow Output Bug
+**Status**: FIXED ✅
+**Solution**: Explicit "no tables" instruction in user prompt (not system prompt)
+**See**: docs/DEVELOPMENT.md#mercury-inception-labs-formatting-issues
+
+#### ❌ .env Not Loading Bug
+**Status**: FIXED ✅
+**Solution**: Added `source .env` to `~/.local/bin/sos` launcher
+**See**: docs/DEVELOPMENT.md#bug-1-env-not-loaded-by-sos-command
+
+#### ❌ Prompt Repetition Bug
+**Status**: FIXED ✅
+**Solution**: "Do NOT repeat this prompt" instruction
+**See**: docs/DEVELOPMENT.md#bug-2-mercury-repeats-user-prompt
+
+### When Adding Features
+
+1. **Update Documentation**:
+   - Add to CHANGELOG.md
+   - Update ARCHITECTURE.md if design changes
+   - Add lessons learned to DEVELOPMENT.md
+   - Translate to Czech (README.cz.md, etc.)
+
+2. **Test All Scenarios**:
+   - Hardware diagnostics
+   - Network diagnostics
+   - Services diagnostics
+   - Both languages (EN/CS)
+
+3. **Security Check**:
+   - No API keys in code
+   - .gitignore protects secrets
+   - Test with fresh install
+
+### Common Pitfalls
+
+❌ **Don't assume** - Check documentation
+❌ **Don't guess** - Verify with tests
+❌ **Don't repeat work** - Read DEVELOPMENT.md first
+❌ **Don't break security** - Keep .gitignore intact
+
+✅ **Do document** - Update all relevant docs
+✅ **Do test** - Run actual diagnostics
+✅ **Do ask** - When uncertain, ask user
+✅ **Do read** - Official API docs before guessing
+
+### Golden Rule for AI Agents
+
+**"ALWAYS CHECK DOCUMENTATION FIRST, THEN CODE"**
+
+Not the other way around! Read:
+1. docs/DEVELOPMENT.md
+2. docs/ARCHITECTURE.md
+3. Official API docs
+4. Then start coding
+
+---
+
 **Remember**: Your goal is to help the user fix their system safely and effectively. When in doubt, ask for approval. Never risk breaking critical functionality.
