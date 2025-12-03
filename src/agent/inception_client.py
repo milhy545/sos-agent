@@ -16,13 +16,14 @@ class InceptionClient:
     Uses Inception Labs API with your subscription.
     """
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "mercury-coder"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "mercury-coder", language: str = "en"):
         """
         Initialize Inception Labs client.
 
         Args:
             api_key: Inception API key (or from INCEPTION_API_KEY env var)
             model: Model name (default: mercury-coder)
+            language: Response language ("en" or "cs")
         """
         self.api_key = api_key or os.getenv("INCEPTION_API_KEY")
         if not self.api_key:
@@ -31,6 +32,7 @@ class InceptionClient:
         self.model_name = model
         self.api_url = "https://api.inceptionlabs.ai/v1/chat/completions"
         self.logger = logging.getLogger(__name__)
+        self.language = language
 
         self.logger.info(f"Inception Labs client initialized: {self.model_name}")
 
@@ -60,7 +62,7 @@ class InceptionClient:
                     "messages": [
                         {
                             "role": "system",
-                            "content": "You are a helpful system administrator assistant. Provide clear, actionable advice for system diagnostics and rescue operations. Format your output for wide terminal displays (120+ columns). Do not wrap text prematurely.",
+                            "content": f"You are a helpful system administrator assistant. Provide clear, actionable advice for system diagnostics and rescue operations. Use plain text formatting without ASCII tables or excessive line breaks. Write in flowing paragraphs that terminals can wrap naturally. Avoid pre-formatted text blocks wider than 80 chars. {'Respond in Czech language (Čeština).' if self.language == 'cs' else 'Respond in English.'}",
                         },
                         {"role": "user", "content": prompt},
                     ],
