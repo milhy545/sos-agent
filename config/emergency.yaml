@@ -1,0 +1,44 @@
+# SOS Agent Emergency Mode Configuration
+
+# Emergency mode enabled
+permission_mode: acceptEdits  # Auto-execute approved operations
+emergency_mode: true
+
+# Claude model
+model: claude-sonnet-4
+
+# Allowed tools (more permissive in emergency)
+allowed_tools:
+  - Read
+  - Write
+  - Bash
+  - Grep
+  - Glob
+  - analyze_system_logs
+  - check_system_health
+  - manage_processes
+  - emergency_cleanup
+
+disallowed_tools:
+  - WebSearch
+  - WebFetch
+
+# Paths
+log_dir: logs
+config_dir: config
+
+# System configuration
+shell: /bin/zsh
+ssh_port: 2222
+
+# Critical services (STILL never stop or disable, even in emergency)
+critical_services:
+  - sshd
+  - NetworkManager
+  - ollama
+  - tailscaled
+
+# ZEN Coordinator integration
+zen_coordinator_url: http://192.168.0.58:8020
+memory_mcp_enabled: true
+memory_mcp_port: 8006

@@ -1,0 +1,47 @@
+# SOS Agent Default Configuration
+
+# Permission mode: "plan" (require approval) or "acceptEdits" (auto-execute)
+permission_mode: plan
+
+# Emergency mode: false (normal) or true (aggressive recovery)
+emergency_mode: false
+
+# Claude model to use
+model: claude-sonnet-4
+
+# Allowed tools (null = all tools allowed)
+allowed_tools:
+  - Read
+  - Write
+  - Bash
+  - Grep
+  - Glob
+  - analyze_system_logs
+  - check_system_health
+  - manage_processes
+  - emergency_cleanup
+
+# Disallowed tools
+disallowed_tools:
+  - WebSearch
+  - WebFetch
+
+# Paths
+log_dir: logs
+config_dir: config
+
+# System configuration
+shell: /bin/zsh
+ssh_port: 2222
+
+# Critical services (never stop or disable)
+critical_services:
+  - sshd
+  - NetworkManager
+  - ollama
+  - tailscaled
+
+# ZEN Coordinator integration
+zen_coordinator_url: http://192.168.0.58:8020
+memory_mcp_enabled: true
+memory_mcp_port: 8006
