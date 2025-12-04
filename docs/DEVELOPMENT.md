@@ -1,12 +1,208 @@
 # SOS Agent - Development History & Lessons Learned
 
-**Last Updated**: 2024-12-03
+**Last Updated**: 2024-12-04 (Evening Session)
 
 This document tracks all development decisions, bugs fixed, and lessons learned during SOS Agent development. **READ THIS BEFORE MAKING CHANGES** to avoid repeating past mistakes.
 
 ---
 
+## 🎯 **GOLDEN RULES (DESATERO)**
+
+### **Rule #1: "VŽDY SE OHLÉDNI ZA SVOJÍ PRACÍ"**
+**"ALWAYS LOOK BACK AT YOUR WORK BEFORE FINISHING"**
+
+Before completing ANY task:
+1. **Verify** the result matches your intention
+2. **Check** reality vs assumption
+3. **Test** that output is human-readable (if for humans)
+4. **Confirm** commands executed successfully
+
+**Example**: Don't just send text to terminal - verify it displayed correctly!
+
+---
+
+### **Rule #2: "RESCUE AGENT MUSÍ NEJDŘÍV ZJISTIT CO ZACHRAŇUJE"**
+**"A RESCUE AGENT MUST FIRST IDENTIFY WHAT IT'S RESCUING"**
+
+**System detection is STEP ONE, not an afterthought!**
+
+A rescue agent diagnosing a system without knowing:
+- What OS (Debian vs Red Hat vs Arch)
+- What hardware (CPU, GPU)
+- What kernel version
+
+**...is like a mechanic trying to fix a car in a kitchen.**
+
+**Implementation**:
+```python
+# STEP 1: Detect system (ALWAYS FIRST!)
+os_info = await get_os_release()  # /etc/os-release
+cpu_info = await get_cpu_info()   # lscpu
+kernel = await get_kernel_version()  # uname -a
+
+# STEP 2: Then diagnose problems
+# STEP 3: Provide fixes using CORRECT package manager for detected OS
+```
+
+**Bad example**: AI suggests `dnf` commands on Debian system
+**Good example**: AI detects Debian → uses `apt` commands
+
+---
+
 ## 🚨 CRITICAL LESSONS LEARNED
+
+### **Issue #3: AI Hallucination - No Real Data Collection** ⚠️ **FIXED**
+**Date**: 2024-12-04
+**Discovered By**: User testing session
+**Problem**: AI providers (Gemini, Mercury, OpenAI) were "vaříc z vody" (making things up) instead of analyzing actual system data
+**Root Cause**:
+- `tools/log_analyzer.py` existed with full journalctl parsing capability
+- BUT `cli.py` diagnose() function never called it!
+- AI was only receiving **text instructions** to "analyze logs", not actual log data
+- Result: AI providers hallucinated problems based on general knowledge instead of diagnosing real issues
+
+**Evidence**:
+```python
+# OLD CODE (cli.py:102-123) - NO DATA COLLECTION
+task = f"""
+Perform comprehensive system diagnostics focusing on: {category}
+
+Steps:
+1. Analyze system logs for errors in the last 24 hours
+2. Check system resource usage (CPU, RAM, disk space)
+...
+"""
+# AI received instructions but NO ACTUAL DATA!
+```
+
+**Working Solution** (cli.py:103-183):
+```python
+# NEW CODE - COLLECT REAL DATA FIRST
+console.print("[dim]Collecting system logs...[/dim]")
+log_data = await analyze_system_logs(time_range="24h", severity="error")
+
+console.print("[dim]Checking system resources...[/dim]")
+# Collect free -h, df -h, uptime output
+
+# Then send ACTUAL DATA to AI
+task = f"""
+=== SYSTEM LOGS (Last 24h) ===
+Hardware Errors: {len(log_data['hardware_errors'])} found
+
+Hardware Error Details:
+{actual_error_list_from_logs}
+
+=== SYSTEM RESOURCES ===
+{actual_free_df_uptime_output}
+
+Based on the ACTUAL DATA above (not speculation):
+...
+"""
+```
+
+**Before/After Comparison**:
+| Before | After |
+|--------|-------|
+| "V souboru /var/log/syslog najdete chybové zprávy..." (hallucination) | "Fatal glibc error: CPU does not support x86-64-v2" (real error from logs) |
+| Generic advice about "disk I/O latency" | Specific tracker-extract-3.service failures with timestamps |
+| Tipování problémů | Analýza skutečných chyb |
+
+**Lesson**: **VERIFY THAT DATA COLLECTION TOOLS ARE ACTUALLY CALLED!** Having the code isn't enough - check the execution path.
+
+**Note**: This bug existed from initial release (2024-12-03) but wasn't noticed because AI responses *seemed* reasonable - they were just generic advice, not system-specific diagnostics.
+
+---
+
+### **Issue #4: Missing Kernel Logs - GPU Errors Invisible** ⚠️ **FIXED**
+**Date**: 2024-12-04 (Evening)
+**Discovered By**: Claude Code comparison with Mercury/Gemini output
+
+**Problem**: Radeon GPU driver errors causing X11/Wayland crashes were NOT detected by AI providers
+
+**Root Cause**:
+1. `log_analyzer.py` only ran `journalctl` for system logs
+2. **Kernel logs** (`journalctl -k`) were never collected
+3. GPU/driver errors (DRM, Radeon) live in kernel logs, not systemd units
+4. Result: AI providers blamed **glibc** instead of **Radeon driver**
+
+**Evidence**:
+```bash
+# What was ACTUALLY causing X11 crashes:
+journalctl -k -p err | grep radeon
+[drm:radeon_ib_ring_tests] *ERROR* radeon: failed testing IB on GFX ring (-110)
+[drm:uvd_v1_0_ib_test] *ERROR* radeon: fence wait timed out
+
+# But log_analyzer NEVER saw these because it didn't check kernel logs!
+```
+
+**What Mercury/Gemini said** (WRONG):
+- Mercury: "glibc error → X11 crash" (indirect correlation, not root cause)
+- Gemini: "Reinstall OS due to CPU incompatibility" (nuclear option, doesn't fix GPU)
+
+**What Claude found** (CORRECT):
+- Radeon GPU driver timeout → X11 server crash → Plasma restart loop
+
+**Fix** (log_analyzer.py:49-82):
+```python
+# OLD: Only system logs
+cmd = f"journalctl --since '{time_range} ago' -p {severity} --no-pager -o json"
+
+# NEW: BOTH system AND kernel logs
+cmd_system = f"journalctl --since '{time_range} ago' -p {severity} --no-pager -o json"
+cmd_kernel = f"journalctl -k --since '{time_range} ago' -p {severity} --no-pager -o json"
+
+# Merge outputs so AI sees BOTH
+stdout = stdout_system + b"\n" + stdout_kernel
+```
+
+**Also added keywords** (log_analyzer.py:114-124):
+```python
+driver_keywords = [
+    "radeon",  # AMD legacy GPUs - CRITICAL for old hardware!
+    "drm",     # Direct Rendering Manager (GPU subsystem)
+    # ...existing keywords
+]
+```
+
+**Permissions issue**: Kernel logs require `systemd-journal` group membership or sudo
+**Solution**: `usermod -a -G systemd-journal <user>` (requires re-login)
+
+**Lesson**: **GPU/driver problems are in KERNEL logs, not systemd unit logs!** Always collect both.
+
+---
+
+### **Issue #5: Warnings Ignored - GUI Crashes Hidden** ⚠️ **FIXED**
+**Date**: 2024-12-04
+**Problem**: X11/Plasma crashes were logged at WARNING level, not ERROR level, so they were missed
+
+**Evidence**:
+```bash
+# These were at WARNING level, not collected:
+[2025-12-03 15:59:21] The X11 connection broke (error 1). Did the X11 server die?
+[2025-12-03 15:59:22] plasma-kded.service: Failed with result 'exit-code'
+```
+
+**Fix** (cli.py:104-117):
+```python
+# OLD: Only errors
+log_data = await analyze_system_logs(time_range="24h", severity="error")
+
+# NEW: Errors + Warnings, then merge
+log_data_errors = await analyze_system_logs(time_range="24h", severity="error")
+log_data_warnings = await analyze_system_logs(time_range="24h", severity="warning")
+
+# Combine both
+log_data = {
+    'service_errors': errors['service_errors'] + warnings['service_errors'],
+    # ...
+}
+```
+
+**Also**: Prioritize GUI errors in prompt (cli.py:186-193) so AI sees them first!
+
+**Lesson**: **Critical problems can be logged as warnings, not just errors!** Collect both.
+
+---
 
 ### Mercury (Inception Labs) Formatting Issues
 **Date**: 2024-12-03

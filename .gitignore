@@ -85,3 +85,6 @@ Thumbs.db
 agentapi
 claude_code_sdk/
 src/claude_cli_auth/
+
+.gemini/
+gha-creds-*.json

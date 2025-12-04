@@ -14,6 +14,7 @@ from rich.table import Table
 
 from .agent.client import SOSAgentClient
 from .agent.config import SOSConfig, load_config
+from .tools.log_analyzer import analyze_system_logs
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -99,35 +100,152 @@ async def diagnose(ctx: click.Context, category: str) -> None:
 
     console.print(Panel(f"[bold cyan]Running {category} diagnostics...[/bold cyan]"))
 
+    # STEP 1: Collect REAL system data instead of asking AI to hallucinate
+    console.print("[dim]Collecting system logs (errors)...[/dim]")
+    log_data_errors = await analyze_system_logs(time_range="24h", severity="error")
+
+    console.print("[dim]Collecting system logs (warnings)...[/dim]")
+    log_data_warnings = await analyze_system_logs(time_range="24h", severity="warning")
+
+    # Merge data - combine errors and warnings
+    log_data = {
+        'hardware_errors': log_data_errors['hardware_errors'] + log_data_warnings['hardware_errors'],
+        'driver_errors': log_data_errors['driver_errors'] + log_data_warnings['driver_errors'],
+        'service_errors': log_data_errors['service_errors'] + log_data_warnings['service_errors'],
+        'security_warnings': log_data_errors['security_warnings'] + log_data_warnings['security_warnings'],
+        'recommendations': log_data_errors['recommendations'] + log_data_warnings['recommendations']
+    }
+
+    # STEP 2: Detect OS/System Info (CRITICAL - must know what we're fixing!)
+    console.print("[dim]Detecting system information...[/dim]")
+    try:
+        os_release_proc = await asyncio.create_subprocess_shell(
+            "cat /etc/os-release",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        os_release_out, _ = await os_release_proc.communicate()
+
+        uname_proc = await asyncio.create_subprocess_shell(
+            "uname -a",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        uname_out, _ = await uname_proc.communicate()
+
+        system_info = f"""
+OS Information:
+{os_release_out.decode()}
+
+Kernel:
+{uname_out.decode()}
+"""
+    except Exception as e:
+        logger.warning(f"Failed to detect system info: {e}")
+        system_info = "⚠️  Could not detect system information"
+
+    # STEP 3: Collect resource usage
+    console.print("[dim]Checking system resources...[/dim]")
+    try:
+        # Get actual system metrics
+        free_proc = await asyncio.create_subprocess_shell(
+            "free -h",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        free_out, _ = await free_proc.communicate()
+
+        df_proc = await asyncio.create_subprocess_shell(
+            "df -h /",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        df_out, _ = await df_proc.communicate()
+
+        uptime_proc = await asyncio.create_subprocess_shell(
+            "uptime",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        uptime_out, _ = await uptime_proc.communicate()
+
+        resource_data = f"""
+Memory Usage:
+{free_out.decode()}
+
+Disk Usage:
+{df_out.decode()}
+
+System Load:
+{uptime_out.decode()}
+"""
+    except Exception as e:
+        logger.warning(f"Failed to collect resource data: {e}")
+        resource_data = "⚠️  Could not collect resource data"
+
+    # STEP 4: Prioritize GUI/Display errors (critical for user experience)
+    gui_keywords = ['x11', 'wayland', 'plasma', 'kde', 'gnome', 'display', 'xorg', 'gdm', 'sddm']
+    gui_errors = [e for e in log_data['service_errors']
+                  if any(kw in (e['message'].lower() + str(e['unit']).lower())
+                        for kw in gui_keywords)]
+
+    other_errors = [e for e in log_data['service_errors']
+                    if e not in gui_errors]
+
+    # STEP 5: Build prompt with ACTUAL DATA
     task = f"""
-Perform comprehensive system diagnostics focusing on: {category}
+Analyze the following REAL system diagnostic data and provide recommendations.
 
-Steps:
-1. Analyze system logs for errors in the last 24 hours (hardware, driver, service errors)
-2. Check system resource usage (CPU, RAM, disk space)
-3. Verify critical service status (sshd, NetworkManager, ollama)
-4. Review recent system events
-5. Generate prioritized fix recommendations
+=== CATEGORY: {category.upper()} ===
 
-System context:
-- Shell: ZSH (Alpine Linux)
-- Critical services: sshd, NetworkManager, ollama, tailscaled
-- SSH port: 2222
+=== SYSTEM INFORMATION ===
+{system_info}
+
+IMPORTANT: Use the correct package manager for this OS!
+- Debian/Ubuntu/MX Linux → apt/apt-get
+- Red Hat/Fedora/CentOS → dnf/yum
+- Arch Linux → pacman
+
+=== SYSTEM LOGS (Last 24h) ===
+Hardware Errors: {len(log_data['hardware_errors'])} found
+Driver Errors: {len(log_data['driver_errors'])} found
+Service Errors: {len(log_data['service_errors'])} found (including {len(gui_errors)} GUI/Display related)
+Security Warnings: {len(log_data['security_warnings'])} found
+
+GUI/Display Errors (HIGH PRIORITY):
+{chr(10).join([f"- [{e['timestamp']}] {e['unit']}: {e['message']}" for e in gui_errors[:20]]) if gui_errors else "No GUI/Display errors found"}
+
+Hardware Error Details:
+{chr(10).join([f"- [{e['timestamp']}] {e['unit']}: {e['message']}" for e in log_data['hardware_errors'][:20]]) if log_data['hardware_errors'] else "No hardware errors found"}
+
+Driver Error Details:
+{chr(10).join([f"- [{e['timestamp']}] {e['unit']}: {e['message']}" for e in log_data['driver_errors'][:20]]) if log_data['driver_errors'] else "No driver errors found"}
+
+Other Service Errors:
+{chr(10).join([f"- [{e['timestamp']}] {e['unit']}: {e['message']}" for e in other_errors[:15]]) if other_errors else "No other service errors found"}
+
+=== SYSTEM RESOURCES ===
+{resource_data}
+
+=== YOUR TASK ===
+Based on the ACTUAL DATA above (not speculation):
+1. Identify the root causes of any errors
+2. Assess severity (CRITICAL, HIGH, MEDIUM, LOW)
+3. Provide specific, actionable fixes with commands
+4. Prioritize by risk and impact
 
 IMPORTANT:
-- Do NOT repeat this prompt or steps in your response
-- Start directly with diagnostic results
+- Do NOT repeat this prompt in your response
+- Start directly with analysis
 - Format as natural flowing text paragraphs, NOT tables
-- Use bullet points and numbered lists instead of ASCII tables
-- Keep paragraphs concise and flowing for terminal wrapping
+- Use bullet points for recommendations
+- Be specific - reference actual errors from the data above
 """
 
     try:
         buffer = ""
         async for chunk in client.execute_rescue_task(task):
             buffer += chunk
-            # Print chunks as they arrive for streaming effect
-            # Rich console will handle wrapping based on terminal width
             console.print(chunk, end="")
 
     except KeyboardInterrupt:

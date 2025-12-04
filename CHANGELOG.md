@@ -7,6 +7,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.2] - 2024-12-04 (Evening)
+
+### 🎯 **GOLDEN RULES ADDED (DESATERO)**
+
+#### Rule #1: "VŽDY SE OHLÉDNI ZA SVOJÍ PRACÍ"
+"Always look back at your work before finishing" - verify results match intentions
+
+#### Rule #2: "RESCUE AGENT MUSÍ NEJDŘÍV ZJISTIT CO ZACHRAŇUJE"
+"A rescue agent must first identify what it's rescuing" - system detection is STEP ONE!
+
+### 🐛 Critical Bug Fixes
+
+#### Issue #4: Missing Kernel Logs - GPU Errors Invisible
+**Problem**: Radeon GPU driver errors causing X11/Wayland crashes were not detected
+
+**Root Cause**: `log_analyzer.py` only collected systemd unit logs, NOT kernel logs where GPU/driver errors live
+
+**What AI said** (WRONG):
+- Mercury: "glibc error → X11 crash"
+- Gemini: "Reinstall OS"
+
+**What was actually happening** (found by Claude):
+- Radeon GPU driver timeout → X11 crash → Plasma restart loop
+
+**Fix**:
+- Added kernel log collection (`journalctl -k`) to log_analyzer.py
+- Added `radeon` and `drm` keywords to driver error detection
+- Kernel logs merged with system logs for complete picture
+
+**Note**: Requires `systemd-journal` group membership or sudo for kernel log access
+
+#### Issue #5: Warnings Ignored - GUI Crashes Hidden
+**Problem**: X11/Plasma crashes logged at WARNING level were never collected
+
+**Fix**:
+- Collect BOTH errors AND warnings, then merge
+- Prioritize GUI/Display errors in AI prompt
+- Increased error limits from 10→20 per category
+
+### ✨ New Features
+
+#### System Detection (CRITICAL for rescue operations)
+- Added OS detection (`/etc/os-release`, `uname -a`)
+- AI now receives OS info BEFORE diagnostics
+- AI uses correct package manager (apt vs dnf vs pacman)
+- Prevents "wrong OS" fixes (e.g., `dnf` on Debian)
+
+#### GUI Error Prioritization
+- GUI/Display errors extracted and shown first
+- Keywords: x11, wayland, plasma, kde, gnome, display, xorg
+- Helps AI identify desktop environment issues faster
+
+### 📝 Documentation Updates
+- Added DESATERO (Golden Rules) to DEVELOPMENT.md
+- Documented Issue #4 (kernel logs) and Issue #5 (warnings)
+- Added before/after comparisons for all fixes
+- Updated with real-world Radeon GPU diagnosis example
+
+---
+
+## [0.1.1] - 2024-12-04
+
+### 🐛 Critical Bug Fixes
+
+#### Issue #3: AI Hallucination - No Real Data Collection
+**Problem**: AI providers were generating generic advice instead of diagnosing actual system problems.
+
+**Root Cause**: `tools/log_analyzer.py` existed but was never called by `cli.py diagnose()` function. AI received text instructions to "analyze logs" but no actual log data, causing hallucinated responses.
+
+**Fix** (cli.py:103-183):
+- Added `analyze_system_logs()` call to collect real journalctl data
+- Added system resource collection (free, df, uptime)
+- Modified AI prompt to include actual error logs with timestamps
+- AI now analyzes real data instead of speculating
+
+**Impact**:
+- **Before**: "V souboru /var/log/syslog najdete chybové zprávy..." (generic hallucination)
+- **After**: "Fatal glibc error: CPU does not support x86-64-v2" (actual error from system logs)
+
+**See**: docs/DEVELOPMENT.md#issue-3-ai-hallucination---no-real-data-collection
+
+### 📝 Documentation Updates
+- Updated DEVELOPMENT.md with Issue #3 details and before/after comparison
+- Added execution path verification lesson learned
+- Updated CLAUDE.md with data collection workflow
+
+---
+
 ## [0.1.0] - 2024-12-03
 
 ### 🎉 Initial Release

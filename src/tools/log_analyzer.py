@@ -47,19 +47,39 @@ async def analyze_system_logs(
     journalctl_severity = severity_map.get(severity, "err")
 
     try:
-        # Analyze journalctl logs
-        cmd = (
+        # Analyze ALL journalctl logs (system + kernel)
+        # CRITICAL: Include kernel logs (-k) for GPU/driver errors!
+        cmd_all = (
             f"journalctl --since '{time_range} ago' "
             f"-p {journalctl_severity} --no-pager -o json"
         )
 
-        logger.debug(f"Running command: {cmd}")
-
-        process = await asyncio.create_subprocess_shell(
-            cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        cmd_kernel = (
+            f"journalctl -k --since '{time_range} ago' "
+            f"-p {journalctl_severity} --no-pager -o json"
         )
 
-        stdout, stderr = await process.communicate()
+        logger.debug(f"Running commands: {cmd_all} && {cmd_kernel}")
+
+        # Run BOTH system and kernel logs
+        process_all = await asyncio.create_subprocess_shell(
+            cmd_all, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        process_kernel = await asyncio.create_subprocess_shell(
+            cmd_kernel, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+
+        stdout_all, stderr_all = await process_all.communicate()
+        stdout_kernel, stderr_kernel = await process_kernel.communicate()
+
+        # Merge outputs
+        stdout = stdout_all + b"\n" + stdout_kernel
+        stderr = stderr_all
+
+        # Use first process returncode for compatibility
+        class FakeProcess:
+            returncode = process_all.returncode
+        process = FakeProcess()
 
         if process.returncode == 0 and stdout:
             # Parse JSON output line by line
@@ -118,6 +138,8 @@ async def analyze_system_logs(
                         "i915",
                         "nvidia",
                         "amdgpu",
+                        "radeon",  # AMD legacy GPUs
+                        "drm",     # Direct Rendering Manager (GPU subsystem)
                         "usb",
                     ]
                     if any(keyword in message_lower for keyword in driver_keywords):
