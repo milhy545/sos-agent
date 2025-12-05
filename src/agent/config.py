@@ -90,6 +90,11 @@ class SOSConfig:
         data = {
             "permission_mode": self.permission_mode,
             "emergency_mode": self.emergency_mode,
+            "ai_provider": self.ai_provider,
+            "gemini_model": self.gemini_model,
+            "openai_model": self.openai_model,
+            "inception_model": self.inception_model,
+            "ai_language": self.ai_language,
             "model": self.model,
             "allowed_tools": self.allowed_tools,
             "disallowed_tools": self.disallowed_tools,
