@@ -685,7 +685,7 @@ def check() -> None:
                 "2. Use different provider: [green]sos --provider mercury diagnose[/green]"
             )
             console.print(
-                "3. Create new project: [green]sos gcloud setup --auto[/green]"
+                "3. Create new project: [green]sos gcloud init --auto[/green]"
             )
 
     except RuntimeError as e:
@@ -720,7 +720,7 @@ def list_projects() -> None:
 
         if not projects:
             console.print("[yellow]No projects found[/yellow]")
-            console.print("\nCreate one: [green]sos gcloud setup --auto[/green]")
+            console.print("\nCreate one: [green]sos gcloud init --auto[/green]")
 
     except RuntimeError as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -758,8 +758,8 @@ def enable_api(project: Optional[str]) -> None:
     "--auto", is_flag=True, help="Enable auto-mode (creates project automatically)"
 )
 @click.option("--project-id", help="Custom project ID (auto-generated if not provided)")
-def setup(auto: bool, project_id: Optional[str]) -> None:
-    """Setup Google Cloud project for SOS Agent.
+def init(auto: bool, project_id: Optional[str]) -> None:
+    """Initialize Google Cloud project for SOS Agent.
 
     Level 1 (Safe): Guides you through manual setup
     Level 2 (Auto): Automatically creates and configures project (requires --auto flag)
@@ -775,7 +775,7 @@ def setup(auto: bool, project_id: Optional[str]) -> None:
                 Panel(
                     "[bold cyan]Google Cloud Setup Guide (Safe Mode)[/bold cyan]\n\n"
                     "This mode will guide you through manual setup.\n"
-                    "For automatic setup, use: [green]sos gcloud setup --auto[/green]"
+                    "For automatic setup, use: [green]sos gcloud init --auto[/green]"
                 )
             )
 
@@ -788,7 +788,7 @@ def setup(auto: bool, project_id: Optional[str]) -> None:
             console.print(
                 "Visit: [blue]https://console.cloud.google.com/projectcreate[/blue]"
             )
-            console.print("Or run: [green]sos gcloud setup --auto[/green]")
+            console.print("Or run: [green]sos gcloud init --auto[/green]")
 
             console.print("\n[bold]Step 3:[/bold] Enable Gemini API")
             console.print("Run: [green]sos gcloud enable-api[/green]")

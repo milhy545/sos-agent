@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """SOS Agent Setup Wizard - Interactive API key configuration."""
 
-import os
 import sys
 from pathlib import Path
 
@@ -40,7 +39,7 @@ def get_api_key(
     print(f"{'─' * 60}")
 
     if optional:
-        print(f"⚠️  This API key is OPTIONAL.")
+        print("⚠️  This API key is OPTIONAL.")
 
     print(f"🔗 Get your key at: {url}")
     print()

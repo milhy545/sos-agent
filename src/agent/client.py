@@ -1,7 +1,6 @@
 """SOS Agent client with multi-model support (AgentAPI, Gemini, OpenAI)."""
 
 import logging
-from pathlib import Path
 from typing import Any, AsyncIterator, Dict, Optional
 
 from .agentapi_client import AgentAPIClient
