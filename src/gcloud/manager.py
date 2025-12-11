@@ -122,18 +122,26 @@ class GCloudManager:
 
         try:
             # Get quota information from GCP
-            data = self._run_gcloud_command([
-                "services",
-                "quota",
-                "describe",
-                "generativelanguage.googleapis.com/generate_content_requests",
-                f"--project={project_id}",
-                "--consumer=projects/" + project_id,
-            ])
+            data = self._run_gcloud_command(
+                [
+                    "services",
+                    "quota",
+                    "describe",
+                    "generativelanguage.googleapis.com/generate_content_requests",
+                    f"--project={project_id}",
+                    "--consumer=projects/" + project_id,
+                ]
+            )
 
             # Parse quota data
-            limit_value = int(data.get("consumerQuotaLimits", [{}])[0].get("quotaLimit", {}).get("defaultLimit", 0))
-            current_usage = int(data.get("consumerQuotaMetrics", [{}])[0].get("usage", 0))
+            limit_value = int(
+                data.get("consumerQuotaLimits", [{}])[0]
+                .get("quotaLimit", {})
+                .get("defaultLimit", 0)
+            )
+            current_usage = int(
+                data.get("consumerQuotaMetrics", [{}])[0].get("usage", 0)
+            )
 
             return QuotaStatus(
                 project_id=project_id,
@@ -156,25 +164,31 @@ class GCloudManager:
                 region="us-central1",
             )
 
-    def is_api_enabled(self, project_id: str, api_name: str = "generativelanguage.googleapis.com") -> bool:
+    def is_api_enabled(
+        self, project_id: str, api_name: str = "generativelanguage.googleapis.com"
+    ) -> bool:
         """Check if API is enabled for project."""
         logger.info(f"Checking if {api_name} is enabled in {project_id}...")
 
         try:
-            data = self._run_gcloud_command([
-                "services",
-                "list",
-                f"--project={project_id}",
-                "--enabled",
-                f"--filter=name:{api_name}",
-            ])
+            data = self._run_gcloud_command(
+                [
+                    "services",
+                    "list",
+                    f"--project={project_id}",
+                    "--enabled",
+                    f"--filter=name:{api_name}",
+                ]
+            )
 
             return len(data) > 0
         except Exception as e:
             logger.error(f"Failed to check API status: {e}")
             return False
 
-    def create_project(self, project_id: Optional[str] = None, auto_confirm: bool = False) -> GCloudProject:
+    def create_project(
+        self, project_id: Optional[str] = None, auto_confirm: bool = False
+    ) -> GCloudProject:
         """Create a new Google Cloud project.
 
         Args:
@@ -196,19 +210,24 @@ class GCloudManager:
         if not project_id:
             import random
             import string
-            random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+
+            random_suffix = "".join(
+                random.choices(string.ascii_lowercase + string.digits, k=6)
+            )
             project_id = f"sos-agent-{random_suffix}"
 
         logger.info(f"Creating new project: {project_id}")
 
         try:
             # Create project
-            self._run_gcloud_command([
-                "projects",
-                "create",
-                project_id,
-                "--name=SOS Agent",
-            ])
+            self._run_gcloud_command(
+                [
+                    "projects",
+                    "create",
+                    project_id,
+                    "--name=SOS Agent",
+                ]
+            )
 
             # Set as active project
             subprocess.run(
@@ -232,7 +251,9 @@ class GCloudManager:
             logger.error(f"Failed to create project: {e}")
             raise RuntimeError(f"Failed to create project: {e}")
 
-    def enable_api(self, project_id: str, api_name: str = "generativelanguage.googleapis.com") -> bool:
+    def enable_api(
+        self, project_id: str, api_name: str = "generativelanguage.googleapis.com"
+    ) -> bool:
         """Enable API for project."""
         logger.info(f"Enabling {api_name} for project {project_id}...")
 
@@ -255,7 +276,9 @@ class GCloudManager:
         Note: This requires the API Keys API to be enabled and may need
         additional setup. Alternative: Use gcloud auth application-default login.
         """
-        logger.warning("API key creation via gcloud is limited. Using application-default credentials.")
+        logger.warning(
+            "API key creation via gcloud is limited. Using application-default credentials."
+        )
         logger.info("Run: gcloud auth application-default login")
         raise NotImplementedError(
             "Automatic API key creation requires additional setup. "

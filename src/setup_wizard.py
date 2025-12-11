@@ -20,7 +20,9 @@ def print_banner():
     print(banner)
 
 
-def get_api_key(service_name: str, env_var: str, url: str, optional: bool = False) -> str:
+def get_api_key(
+    service_name: str, env_var: str, url: str, optional: bool = False
+) -> str:
     """
     Prompt user for API key.
 
@@ -104,9 +106,7 @@ def setup_wizard():
         print(f"✅ Language set: {language_name}")
 
     # Collect API keys
-    api_keys = {
-        "SOS_AI_LANGUAGE": ai_language
-    }
+    api_keys = {"SOS_AI_LANGUAGE": ai_language}
 
     # Gemini (recommended)
     print("\n" + "=" * 60)

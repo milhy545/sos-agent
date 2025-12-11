@@ -62,9 +62,7 @@ async def safe_permission_handler(
         # Protect critical services
         for service in CRITICAL_SERVICES:
             if f"systemctl stop {service}" in command:
-                logger.critical(
-                    f"Blocked attempt to stop critical service: {service}"
-                )
+                logger.critical(f"Blocked attempt to stop critical service: {service}")
                 return {
                     "behavior": "deny",
                     "reason": f"❌ Cannot stop critical service: {service}",

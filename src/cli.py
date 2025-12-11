@@ -50,7 +50,13 @@ def setup_logging(verbose: bool = False) -> None:
     help="AI provider (overrides config)",
 )
 @click.pass_context
-async def cli(ctx: click.Context, config: Optional[str], verbose: bool, emergency: bool, provider: Optional[str]) -> None:
+async def cli(
+    ctx: click.Context,
+    config: Optional[str],
+    verbose: bool,
+    emergency: bool,
+    provider: Optional[str],
+) -> None:
     """
     🆘 SOS Agent - System Rescue & Optimization Agent
 
@@ -109,11 +115,16 @@ async def diagnose(ctx: click.Context, category: str) -> None:
 
     # Merge data - combine errors and warnings
     log_data = {
-        'hardware_errors': log_data_errors['hardware_errors'] + log_data_warnings['hardware_errors'],
-        'driver_errors': log_data_errors['driver_errors'] + log_data_warnings['driver_errors'],
-        'service_errors': log_data_errors['service_errors'] + log_data_warnings['service_errors'],
-        'security_warnings': log_data_errors['security_warnings'] + log_data_warnings['security_warnings'],
-        'recommendations': log_data_errors['recommendations'] + log_data_warnings['recommendations']
+        "hardware_errors": log_data_errors["hardware_errors"]
+        + log_data_warnings["hardware_errors"],
+        "driver_errors": log_data_errors["driver_errors"]
+        + log_data_warnings["driver_errors"],
+        "service_errors": log_data_errors["service_errors"]
+        + log_data_warnings["service_errors"],
+        "security_warnings": log_data_errors["security_warnings"]
+        + log_data_warnings["security_warnings"],
+        "recommendations": log_data_errors["recommendations"]
+        + log_data_warnings["recommendations"],
     }
 
     # STEP 2: Detect OS/System Info (CRITICAL - must know what we're fixing!)
@@ -122,14 +133,12 @@ async def diagnose(ctx: click.Context, category: str) -> None:
         os_release_proc = await asyncio.create_subprocess_shell(
             "cat /etc/os-release",
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
         )
         os_release_out, _ = await os_release_proc.communicate()
 
         uname_proc = await asyncio.create_subprocess_shell(
-            "uname -a",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            "uname -a", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         uname_out, _ = await uname_proc.communicate()
 
@@ -149,23 +158,17 @@ Kernel:
     try:
         # Get actual system metrics
         free_proc = await asyncio.create_subprocess_shell(
-            "free -h",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            "free -h", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         free_out, _ = await free_proc.communicate()
 
         df_proc = await asyncio.create_subprocess_shell(
-            "df -h /",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            "df -h /", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         df_out, _ = await df_proc.communicate()
 
         uptime_proc = await asyncio.create_subprocess_shell(
-            "uptime",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            "uptime", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         uptime_out, _ = await uptime_proc.communicate()
 
@@ -184,13 +187,26 @@ System Load:
         resource_data = "⚠️  Could not collect resource data"
 
     # STEP 4: Prioritize GUI/Display errors (critical for user experience)
-    gui_keywords = ['x11', 'wayland', 'plasma', 'kde', 'gnome', 'display', 'xorg', 'gdm', 'sddm']
-    gui_errors = [e for e in log_data['service_errors']
-                  if any(kw in (e['message'].lower() + str(e['unit']).lower())
-                        for kw in gui_keywords)]
+    gui_keywords = [
+        "x11",
+        "wayland",
+        "plasma",
+        "kde",
+        "gnome",
+        "display",
+        "xorg",
+        "gdm",
+        "sddm",
+    ]
+    gui_errors = [
+        e
+        for e in log_data["service_errors"]
+        if any(
+            kw in (e["message"].lower() + str(e["unit"]).lower()) for kw in gui_keywords
+        )
+    ]
 
-    other_errors = [e for e in log_data['service_errors']
-                    if e not in gui_errors]
+    other_errors = [e for e in log_data["service_errors"] if e not in gui_errors]
 
     # STEP 5: Build prompt with ACTUAL DATA
     task = f"""
@@ -258,16 +274,13 @@ IMPORTANT:
 @cli.command()
 @click.argument(
     "category",
-    type=click.Choice([
-        "hardware",
-        "services",
-        "network",
-        "performance",
-        "security",
-        "all"
-    ]),
+    type=click.Choice(
+        ["hardware", "services", "network", "performance", "security", "all"]
+    ),
 )
-@click.option("--dry-run", is_flag=True, help="Show what would be fixed without making changes")
+@click.option(
+    "--dry-run", is_flag=True, help="Show what would be fixed without making changes"
+)
 @click.pass_context
 async def fix(ctx: click.Context, category: str, dry_run: bool) -> None:
     """
@@ -278,7 +291,9 @@ async def fix(ctx: click.Context, category: str, dry_run: bool) -> None:
     client: SOSAgentClient = ctx.obj["client"]
 
     mode = "dry-run (preview only)" if dry_run else "ACTIVE"
-    console.print(Panel(f"[bold yellow]Fix mode: {mode} - Category: {category}[/bold yellow]"))
+    console.print(
+        Panel(f"[bold yellow]Fix mode: {mode} - Category: {category}[/bold yellow]")
+    )
 
     task = f"""
 Fix all {category} issues detected in recent diagnostics.
@@ -329,16 +344,18 @@ async def emergency(ctx: click.Context) -> None:
     # Force emergency mode
     config.emergency_mode = True
 
-    console.print(Panel(
-        "[bold red]⚠️  EMERGENCY MODE ACTIVATED ⚠️[/bold red]\n\n"
-        "This will perform aggressive recovery operations:\n"
-        "- Stop non-critical processes\n"
-        "- Clear temporary files and caches\n"
-        "- Restart failed critical services\n"
-        "- Apply thermal management if needed\n"
-        "- Verify system stability",
-        style="red"
-    ))
+    console.print(
+        Panel(
+            "[bold red]⚠️  EMERGENCY MODE ACTIVATED ⚠️[/bold red]\n\n"
+            "This will perform aggressive recovery operations:\n"
+            "- Stop non-critical processes\n"
+            "- Clear temporary files and caches\n"
+            "- Restart failed critical services\n"
+            "- Apply thermal management if needed\n"
+            "- Verify system stability",
+            style="red",
+        )
+    )
 
     if not click.confirm("Continue with emergency recovery?"):
         console.print("[yellow]Emergency recovery cancelled[/yellow]")
@@ -386,7 +403,12 @@ CRITICAL: Never stop sshd, NetworkManager, ollama, or tailscaled.
                     if block.get("type") == "text":
                         console.print(block["text"])
 
-        console.print(Panel("[bold green]✅ Emergency recovery completed[/bold green]", style="green"))
+        console.print(
+            Panel(
+                "[bold green]✅ Emergency recovery completed[/bold green]",
+                style="green",
+            )
+        )
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Emergency recovery interrupted by user[/yellow]")
@@ -406,10 +428,12 @@ async def monitor(ctx: click.Context, interval: int) -> None:
     """
     client: SOSAgentClient = ctx.obj["client"]
 
-    console.print(Panel(
-        f"[bold cyan]Starting continuous monitoring (interval: {interval}s)[/bold cyan]\n"
-        "Press Ctrl+C to stop"
-    ))
+    console.print(
+        Panel(
+            f"[bold cyan]Starting continuous monitoring (interval: {interval}s)[/bold cyan]\n"
+            "Press Ctrl+C to stop"
+        )
+    )
 
     try:
         while True:
@@ -459,42 +483,22 @@ async def menu(ctx: click.Context) -> None:
     table.add_row(
         "System Diagnostics",
         "Analyze logs, check health, identify issues",
-        "sos diagnose"
+        "sos diagnose",
     )
+    table.add_row("Fix Issues", "Repair detected problems", "sos fix <category>")
     table.add_row(
-        "Fix Issues",
-        "Repair detected problems",
-        "sos fix <category>"
+        "Emergency Recovery", "Aggressive stabilization and cleanup", "sos emergency"
     )
-    table.add_row(
-        "Emergency Recovery",
-        "Aggressive stabilization and cleanup",
-        "sos emergency"
-    )
-    table.add_row(
-        "Monitor",
-        "Continuous real-time monitoring",
-        "sos monitor"
-    )
-    table.add_row(
-        "Boot/GRUB",
-        "Boot system diagnostics and fixes",
-        "sos check-boot"
-    )
+    table.add_row("Monitor", "Continuous real-time monitoring", "sos monitor")
+    table.add_row("Boot/GRUB", "Boot system diagnostics and fixes", "sos check-boot")
     table.add_row(
         "Applications",
         "Optimize/clean/fix apps (flatpak, snap, docker)",
-        "sos optimize-apps"
+        "sos optimize-apps",
     )
+    table.add_row("Security Audit", "System security check", "sos security-audit")
     table.add_row(
-        "Security Audit",
-        "System security check",
-        "sos security-audit"
-    )
-    table.add_row(
-        "Backup Profile",
-        "User profile backup and migration",
-        "sos backup-profile"
+        "Backup Profile", "User profile backup and migration", "sos backup-profile"
     )
 
     console.print(table)
@@ -557,7 +561,9 @@ async def optimize_apps(ctx: click.Context, platform: str) -> None:
     """
     client: SOSAgentClient = ctx.obj["client"]
 
-    console.print(Panel(f"[bold cyan]Optimizing {platform} applications...[/bold cyan]"))
+    console.print(
+        Panel(f"[bold cyan]Optimizing {platform} applications...[/bold cyan]")
+    )
 
     task = f"""
 Optimize and clean {platform} applications:
@@ -634,15 +640,21 @@ def check() -> None:
         if not current_project:
             console.print("[yellow]⚠️  No active GCloud project found[/yellow]")
             console.print("\nRun: [green]gcloud auth login[/green]")
-            console.print("Then: [green]gcloud config set project YOUR_PROJECT_ID[/green]")
+            console.print(
+                "Then: [green]gcloud config set project YOUR_PROJECT_ID[/green]"
+            )
             return
 
-        console.print(f"[green]✓[/green] Active project: [bold]{current_project}[/bold]")
+        console.print(
+            f"[green]✓[/green] Active project: [bold]{current_project}[/bold]"
+        )
 
         # Check if Gemini API is enabled
         api_enabled = manager.is_api_enabled(current_project)
         if api_enabled:
-            console.print("[green]✓[/green] Gemini API: [bold green]Enabled[/bold green]")
+            console.print(
+                "[green]✓[/green] Gemini API: [bold green]Enabled[/bold green]"
+            )
         else:
             console.print("[red]✗[/red] Gemini API: [bold red]Not Enabled[/bold red]")
             console.print("\nEnable with: [green]sos gcloud enable-api[/green]")
@@ -669,8 +681,12 @@ def check() -> None:
             console.print("\n[bold red]⚠️  Quota Exceeded or Banned![/bold red]")
             console.print("\n[yellow]Recommendations:[/yellow]")
             console.print("1. Wait for quota reset (usually hourly)")
-            console.print("2. Use different provider: [green]sos --provider mercury diagnose[/green]")
-            console.print("3. Create new project: [green]sos gcloud setup --auto[/green]")
+            console.print(
+                "2. Use different provider: [green]sos --provider mercury diagnose[/green]"
+            )
+            console.print(
+                "3. Create new project: [green]sos gcloud setup --auto[/green]"
+            )
 
     except RuntimeError as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -738,7 +754,9 @@ def enable_api(project: Optional[str]) -> None:
 
 
 @gcloud.command()
-@click.option("--auto", is_flag=True, help="Enable auto-mode (creates project automatically)")
+@click.option(
+    "--auto", is_flag=True, help="Enable auto-mode (creates project automatically)"
+)
 @click.option("--project-id", help="Custom project ID (auto-generated if not provided)")
 def setup(auto: bool, project_id: Optional[str]) -> None:
     """Setup Google Cloud project for SOS Agent.
@@ -753,17 +771,23 @@ def setup(auto: bool, project_id: Optional[str]) -> None:
 
         if not auto:
             # Level 1: Safe mode - just guidance
-            console.print(Panel(
-                "[bold cyan]Google Cloud Setup Guide (Safe Mode)[/bold cyan]\n\n"
-                "This mode will guide you through manual setup.\n"
-                "For automatic setup, use: [green]sos gcloud setup --auto[/green]"
-            ))
+            console.print(
+                Panel(
+                    "[bold cyan]Google Cloud Setup Guide (Safe Mode)[/bold cyan]\n\n"
+                    "This mode will guide you through manual setup.\n"
+                    "For automatic setup, use: [green]sos gcloud setup --auto[/green]"
+                )
+            )
 
             console.print("\n[bold]Step 1:[/bold] Check current status")
             console.print("Run: [green]sos gcloud check[/green]")
 
-            console.print("\n[bold]Step 2:[/bold] If quota exceeded, create new project:")
-            console.print("Visit: [blue]https://console.cloud.google.com/projectcreate[/blue]")
+            console.print(
+                "\n[bold]Step 2:[/bold] If quota exceeded, create new project:"
+            )
+            console.print(
+                "Visit: [blue]https://console.cloud.google.com/projectcreate[/blue]"
+            )
             console.print("Or run: [green]sos gcloud setup --auto[/green]")
 
             console.print("\n[bold]Step 3:[/bold] Enable Gemini API")
@@ -778,16 +802,18 @@ def setup(auto: bool, project_id: Optional[str]) -> None:
             return
 
         # Level 2: Auto mode - automatic project creation
-        console.print(Panel(
-            "[bold yellow]⚠️  AUTO-MODE WARNING ⚠️[/bold yellow]\n\n"
-            "This will automatically:\n"
-            "✓ Create new GCP project\n"
-            "✓ Enable Gemini API\n"
-            "✓ Set as active project\n\n"
-            "[bold]Note:[/bold] You still need to create API key manually at:\n"
-            "https://aistudio.google.com/app/apikey",
-            style="yellow"
-        ))
+        console.print(
+            Panel(
+                "[bold yellow]⚠️  AUTO-MODE WARNING ⚠️[/bold yellow]\n\n"
+                "This will automatically:\n"
+                "✓ Create new GCP project\n"
+                "✓ Enable Gemini API\n"
+                "✓ Set as active project\n\n"
+                "[bold]Note:[/bold] You still need to create API key manually at:\n"
+                "https://aistudio.google.com/app/apikey",
+                style="yellow",
+            )
+        )
 
         if not click.confirm("\nType 'yes' to continue with auto-setup", default=False):
             console.print("[yellow]Setup cancelled[/yellow]")
@@ -806,16 +832,18 @@ def setup(auto: bool, project_id: Optional[str]) -> None:
         console.print("[green]✓ Gemini API enabled[/green]")
 
         # Final instructions
-        console.print(Panel(
-            "[bold green]✓ Setup Complete![/bold green]\n\n"
-            f"Project ID: [bold]{project.project_id}[/bold]\n\n"
-            "[yellow]⚠️  Important:[/yellow] Create API key manually:\n"
-            "1. Visit: [blue]https://aistudio.google.com/app/apikey[/blue]\n"
-            f"2. Select project: [bold]{project.project_id}[/bold]\n"
-            "3. Create API key\n"
-            "4. Run: [green]sos setup[/green] and paste the key",
-            style="green"
-        ))
+        console.print(
+            Panel(
+                "[bold green]✓ Setup Complete![/bold green]\n\n"
+                f"Project ID: [bold]{project.project_id}[/bold]\n\n"
+                "[yellow]⚠️  Important:[/yellow] Create API key manually:\n"
+                "1. Visit: [blue]https://aistudio.google.com/app/apikey[/blue]\n"
+                f"2. Select project: [bold]{project.project_id}[/bold]\n"
+                "3. Create API key\n"
+                "4. Run: [green]sos setup[/green] and paste the key",
+                style="green",
+            )
+        )
 
     except RuntimeError as e:
         console.print(f"[red]Error: {e}[/red]")

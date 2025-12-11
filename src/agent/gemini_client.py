@@ -17,7 +17,9 @@ class GeminiClient:
     Uses Google's Gemini API with your subscription.
     """
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-2.0-flash-exp"):
+    def __init__(
+        self, api_key: Optional[str] = None, model: str = "gemini-2.0-flash-exp"
+    ):
         """
         Initialize Gemini client.
 

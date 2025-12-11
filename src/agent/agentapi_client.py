@@ -56,15 +56,21 @@ class AgentAPIClient:
         # Check if server is already running (external process)
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.api_url}/", timeout=aiohttp.ClientTimeout(total=2)) as response:
+                async with session.get(
+                    f"{self.api_url}/", timeout=aiohttp.ClientTimeout(total=2)
+                ) as response:
                     if response.status < 500:
-                        logger.info("AgentAPI server already running (external process)")
+                        logger.info(
+                            "AgentAPI server already running (external process)"
+                        )
                         return
         except (aiohttp.ClientError, asyncio.TimeoutError):
             # Server not running, proceed to start it
             pass
 
-        logger.info(f"Starting AgentAPI server: {self.agentapi_path} server -- {self.claude_path}")
+        logger.info(
+            f"Starting AgentAPI server: {self.agentapi_path} server -- {self.claude_path}"
+        )
 
         try:
             self.server_process = subprocess.Popen(
@@ -78,7 +84,11 @@ class AgentAPIClient:
 
             # Check if server started successfully
             if self.server_process.poll() is not None:
-                stderr = self.server_process.stderr.read().decode() if self.server_process.stderr else ""
+                stderr = (
+                    self.server_process.stderr.read().decode()
+                    if self.server_process.stderr
+                    else ""
+                )
                 raise RuntimeError(f"AgentAPI server failed to start: {stderr}")
 
             logger.info("AgentAPI server started successfully")
@@ -109,15 +119,12 @@ class AgentAPIClient:
             API response dict
         """
         async with aiohttp.ClientSession() as session:
-            payload = {
-                "content": content,
-                "type": "user"
-            }
+            payload = {"content": content, "type": "user"}
 
             async with session.post(
                 f"{self.api_url}/message",
                 json=payload,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             ) as response:
                 response.raise_for_status()
                 return await response.json()
@@ -169,7 +176,11 @@ class AgentAPIClient:
                 if len(messages) > last_message_count:
                     # Yield new messages
                     # Ensure last_message_count is int (not slice)
-                    start_idx = int(last_message_count) if isinstance(last_message_count, (int, float)) else 0
+                    start_idx = (
+                        int(last_message_count)
+                        if isinstance(last_message_count, (int, float))
+                        else 0
+                    )
                     new_messages = messages[start_idx:]
                     for msg in new_messages:
                         if isinstance(msg, dict) and msg.get("role") == "agent":
@@ -181,12 +192,18 @@ class AgentAPIClient:
                     last_message_count = len(messages)
 
                 # Check if agent is done (last message is from agent)
-                if messages and isinstance(messages[-1], dict) and messages[-1].get("role") == "agent":
+                if (
+                    messages
+                    and isinstance(messages[-1], dict)
+                    and messages[-1].get("role") == "agent"
+                ):
                     # Wait a bit more to ensure no more messages
                     await asyncio.sleep(3)
                     final_messages = await self.get_messages()
 
-                    if isinstance(final_messages, list) and len(final_messages) == len(messages):
+                    if isinstance(final_messages, list) and len(final_messages) == len(
+                        messages
+                    ):
                         # No new messages, agent is done
                         break
                     elif isinstance(final_messages, list):

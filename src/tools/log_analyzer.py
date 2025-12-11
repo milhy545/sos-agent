@@ -79,6 +79,7 @@ async def analyze_system_logs(
         # Use first process returncode for compatibility
         class FakeProcess:
             returncode = process_all.returncode
+
         process = FakeProcess()
 
         # Check kernel logs specifically
@@ -146,7 +147,7 @@ async def analyze_system_logs(
                         "nvidia",
                         "amdgpu",
                         "radeon",  # AMD legacy GPUs
-                        "drm",     # Direct Rendering Manager (GPU subsystem)
+                        "drm",  # Direct Rendering Manager (GPU subsystem)
                         "usb",
                     ]
                     if any(keyword in message_lower for keyword in driver_keywords):
@@ -198,8 +199,7 @@ async def analyze_system_logs(
         if results["service_errors"]:
             svc_count = len(results["service_errors"])
             results["recommendations"].append(
-                f"⚠️  {svc_count} service error(s) detected - "
-                f"review failed services"
+                f"⚠️  {svc_count} service error(s) detected - " f"review failed services"
             )
 
         if results["security_warnings"]:
@@ -245,21 +245,27 @@ async def analyze_system_logs_mcp(args: Dict[str, str]) -> Dict[str, Any]:
     output_lines = ["# System Log Analysis Results\n"]
 
     if results["hardware_errors"]:
-        output_lines.append(f"\n## 🔴 Hardware Errors ({len(results['hardware_errors'])})\n")
+        output_lines.append(
+            f"\n## 🔴 Hardware Errors ({len(results['hardware_errors'])})\n"
+        )
         for entry in results["hardware_errors"][:10]:  # Show top 10
             output_lines.append(
                 f"- [{entry['timestamp']}] {entry['unit']}: {entry['message']}\n"
             )
 
     if results["driver_errors"]:
-        output_lines.append(f"\n## ⚠️  Driver Errors ({len(results['driver_errors'])})\n")
+        output_lines.append(
+            f"\n## ⚠️  Driver Errors ({len(results['driver_errors'])})\n"
+        )
         for entry in results["driver_errors"][:10]:
             output_lines.append(
                 f"- [{entry['timestamp']}] {entry['unit']}: {entry['message']}\n"
             )
 
     if results["service_errors"]:
-        output_lines.append(f"\n## ⚠️  Service Errors ({len(results['service_errors'])})\n")
+        output_lines.append(
+            f"\n## ⚠️  Service Errors ({len(results['service_errors'])})\n"
+        )
         for entry in results["service_errors"][:10]:
             output_lines.append(
                 f"- [{entry['timestamp']}] {entry['unit']}: {entry['message']}\n"

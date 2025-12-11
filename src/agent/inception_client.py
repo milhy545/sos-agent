@@ -16,7 +16,12 @@ class InceptionClient:
     Uses Inception Labs API with your subscription.
     """
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "mercury-coder", language: str = "en"):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: str = "mercury-coder",
+        language: str = "en",
+    ):
         """
         Initialize Inception Labs client.
 
@@ -27,7 +32,9 @@ class InceptionClient:
         """
         self.api_key = api_key or os.getenv("INCEPTION_API_KEY")
         if not self.api_key:
-            raise ValueError("INCEPTION_API_KEY not found in environment or constructor")
+            raise ValueError(
+                "INCEPTION_API_KEY not found in environment or constructor"
+            )
 
         self.model_name = model
         self.api_url = "https://api.inceptionlabs.ai/v1/chat/completions"
@@ -75,7 +82,9 @@ class InceptionClient:
                     "Authorization": f"Bearer {self.api_key}",
                 }
 
-                async with session.post(self.api_url, json=payload, headers=headers) as response:
+                async with session.post(
+                    self.api_url, json=payload, headers=headers
+                ) as response:
                     response.raise_for_status()
 
                     if stream:

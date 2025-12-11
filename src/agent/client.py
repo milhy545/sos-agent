@@ -92,7 +92,9 @@ class SOSAgentClient:
         # Build contextualized task
         full_task = self._build_task_with_context(task, ctx)
 
-        self.logger.info(f"Executing rescue task via {self.client_type}: {task[:100]}...")
+        self.logger.info(
+            f"Executing rescue task via {self.client_type}: {task[:100]}..."
+        )
         self.logger.debug(f"Context: {ctx}")
 
         try:
@@ -107,11 +109,15 @@ class SOSAgentClient:
 
             elif self.client_type in ["gemini", "openai", "inception"]:
                 # Direct API workflow (Gemini/OpenAI/Inception)
-                async for response_chunk in self.client.query(full_task, context=ctx, stream=stream):
+                async for response_chunk in self.client.query(
+                    full_task, context=ctx, stream=stream
+                ):
                     yield response_chunk
 
         except Exception as e:
-            self.logger.critical(f"{self.client_type.upper()} error: {e}", exc_info=True)
+            self.logger.critical(
+                f"{self.client_type.upper()} error: {e}", exc_info=True
+            )
             yield f"❌ ERROR: {str(e)}\\n\\nℹ️  Check your {self.client_type.upper()} configuration"
 
     def _build_task_with_context(self, task: str, context: Dict[str, Any]) -> str:
