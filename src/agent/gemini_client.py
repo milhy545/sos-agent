@@ -1,5 +1,6 @@
 """Gemini API client for SOS Agent."""
 
+import asyncio
 import logging
 import os
 from typing import Any, AsyncIterator, Dict, Optional
@@ -70,18 +71,25 @@ class GeminiClient:
         self.logger.info(f"Querying Gemini: {prompt[:100]}...")
 
         try:
+            async def _generate():
+                return await asyncio.to_thread(
+                    self.model.generate_content, prompt, stream=stream
+                )
+
+            response = await asyncio.wait_for(_generate(), timeout=60)
+
             if stream:
-                # Stream response
-                response = self.model.generate_content(prompt, stream=True)
-
                 for chunk in response:
-                    if chunk.text:
-                        yield chunk.text
+                    text_chunk = getattr(chunk, "text", None)
+                    if text_chunk:
+                        yield text_chunk
             else:
-                # Non-streaming response
-                response = self.model.generate_content(prompt)
-                yield response.text
+                text_full = getattr(response, "text", "")
+                yield text_full or ""
 
+        except asyncio.TimeoutError:
+            self.logger.error("Gemini API timeout after 60s")
+            yield "❌ Gemini API Error: request timed out (60s)."
         except Exception as e:
             self.logger.error(f"Gemini API error: {e}", exc_info=True)
             yield f"❌ Gemini API Error: {str(e)}\n\nℹ️  Check GEMINI_API_KEY environment variable"

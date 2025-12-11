@@ -5,7 +5,7 @@ from src.agent.config import SOSConfig, load_config
 def test_config_defaults():
     config = SOSConfig()
     assert config.permission_mode == "plan"
-    assert config.ai_provider == "gemini"
+    assert config.ai_provider == "auto"
     assert config.emergency_mode is False
     assert "sshd" in config.critical_services
     assert config.ai_language == "en"

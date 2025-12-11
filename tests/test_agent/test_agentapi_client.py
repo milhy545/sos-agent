@@ -72,6 +72,7 @@ async def test_send_message(api_client):
         mock_session.__aenter__.return_value = mock_session
 
         mock_response = AsyncMock()
+        mock_response.raise_for_status = Mock()
         mock_response.json.return_value = {"status": "ok"}
         mock_session.post.return_value.__aenter__.return_value = mock_response
 
@@ -87,6 +88,7 @@ async def test_get_messages(api_client):
         mock_session.__aenter__.return_value = mock_session
 
         mock_response = AsyncMock()
+        mock_response.raise_for_status = Mock()
         mock_response.json.return_value = {"messages": [{"role": "agent", "content": "Hi"}]}
         mock_session.get.return_value.__aenter__.return_value = mock_response
 

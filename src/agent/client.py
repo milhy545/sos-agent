@@ -33,26 +33,47 @@ class SOSAgentClient:
         self.config = config
         self.logger = logging.getLogger(__name__)
 
+        provider = config.ai_provider
+        if provider == "auto":
+            provider = self._auto_select_provider(config)
+            self.logger.info(f"Auto-selected provider: {provider}")
+            self.config.ai_provider = provider
+
         # Initialize AI client based on provider
-        if config.ai_provider == "claude-agentapi":
+        if provider == "claude-agentapi":
             self.client = AgentAPIClient(
                 api_url="http://localhost:3284",
                 claude_path="/usr/bin/claude",
             )
             self.client_type = "agentapi"
-        elif config.ai_provider == "gemini":
+        elif provider == "gemini":
+            if not config.gemini_api_key:
+                raise ValueError(
+                    "Gemini provider vyžaduje GEMINI_API_KEY. "
+                    "Doplňte klíč nebo zvolte jiného providera."
+                )
             self.client = GeminiClient(
                 api_key=config.gemini_api_key,
                 model=config.gemini_model,
             )
             self.client_type = "gemini"
-        elif config.ai_provider == "openai":
+        elif provider == "openai":
+            if not config.openai_api_key:
+                raise ValueError(
+                    "OpenAI provider vyžaduje OPENAI_API_KEY. "
+                    "Doplňte klíč nebo zvolte jiného providera."
+                )
             self.client = OpenAIClient(
                 api_key=config.openai_api_key,
                 model=config.openai_model,
             )
             self.client_type = "openai"
-        elif config.ai_provider == "inception":
+        elif provider == "inception":
+            if not config.inception_api_key:
+                raise ValueError(
+                    "Inception provider vyžaduje INCEPTION_API_KEY. "
+                    "Doplňte klíč nebo zvolte jiného providera."
+                )
             self.client = InceptionClient(
                 api_key=config.inception_api_key,
                 model=config.inception_model,
@@ -60,9 +81,19 @@ class SOSAgentClient:
             )
             self.client_type = "inception"
         else:
-            raise ValueError(f"Unknown AI provider: {config.ai_provider}")
+            raise ValueError(f"Unknown AI provider: {provider}")
 
         self.logger.info(f"SOS Agent initialized with provider: {config.ai_provider}")
+
+    def _auto_select_provider(self, config: SOSConfig) -> str:
+        """Vyber providera podle dostupných klíčů nebo AgentAPI fallback."""
+        if config.gemini_api_key:
+            return "gemini"
+        if config.inception_api_key:
+            return "inception"
+        if config.openai_api_key:
+            return "openai"
+        return "claude-agentapi"
 
     async def execute_rescue_task(
         self,

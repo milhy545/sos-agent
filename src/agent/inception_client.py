@@ -63,7 +63,8 @@ class InceptionClient:
         self.logger.info(f"Querying Inception Labs: {prompt[:100]}...")
 
         try:
-            async with aiohttp.ClientSession() as session:
+            timeout = aiohttp.ClientTimeout(total=60, connect=10, sock_read=60)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 payload = {
                     "model": self.model_name,
                     "messages": [

@@ -26,7 +26,7 @@ class SOSConfig:
     permission_mode: str = "plan"  # "plan" or "acceptEdits"
     emergency_mode: bool = False
     model: str = "claude-sonnet-4"
-    ai_provider: str = "gemini"  # "claude-agentapi", "gemini", "openai", "inception"
+    ai_provider: str = "auto"  # auto-detect based on available keys
     gemini_model: str = "gemini-2.0-flash-exp"
     openai_model: str = "gpt-4o"
     inception_model: str = "mercury-coder"
@@ -58,15 +58,15 @@ class SOSConfig:
 
     # System Context
     shell: str = "/bin/zsh"  # Alpine Linux uses ZSH
-    ssh_port: int = 2222
+    ssh_port: int = 22
     critical_services: List[str] = field(
         default_factory=lambda: ["sshd", "NetworkManager", "ollama", "tailscaled"]
     )
 
     # ZEN Coordinator Integration
-    zen_coordinator_url: Optional[str] = "http://192.168.0.58:8020"
-    memory_mcp_enabled: bool = True
-    memory_mcp_port: int = 8006
+    zen_coordinator_url: Optional[str] = None
+    memory_mcp_enabled: bool = False
+    memory_mcp_port: Optional[int] = None
 
     @classmethod
     def from_yaml(cls, config_path: Path) -> "SOSConfig":
@@ -97,12 +97,17 @@ class SOSConfig:
             "log_dir": str(self.log_dir),
             "config_dir": str(self.config_dir),
             "shell": self.shell,
-            "ssh_port": self.ssh_port,
             "critical_services": self.critical_services,
-            "zen_coordinator_url": self.zen_coordinator_url,
-            "memory_mcp_enabled": self.memory_mcp_enabled,
-            "memory_mcp_port": self.memory_mcp_port,
         }
+
+        if self.ssh_port != 22:
+            data["ssh_port"] = self.ssh_port
+        if self.zen_coordinator_url:
+            data["zen_coordinator_url"] = self.zen_coordinator_url
+        if self.memory_mcp_enabled:
+            data["memory_mcp_enabled"] = self.memory_mcp_enabled
+        if self.memory_mcp_port:
+            data["memory_mcp_port"] = self.memory_mcp_port
 
         with open(config_path, "w") as f:
             yaml.dump(data, f, default_flow_style=False)

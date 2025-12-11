@@ -6,10 +6,13 @@ permission_mode: plan
 # Emergency mode: false (normal) or true (aggressive recovery)
 emergency_mode: false
 
+# AI provider selection (auto = choose based on available keys)
+ai_provider: auto
+
 # Claude model to use
 model: claude-sonnet-4
 
-# Allowed tools (null = all tools allowed)
+# Allowed tools
 allowed_tools:
   - Read
   - Write
@@ -30,18 +33,9 @@ disallowed_tools:
 log_dir: logs
 config_dir: config
 
-# System configuration
-shell: /bin/zsh
-ssh_port: 2222
-
 # Critical services (never stop or disable)
 critical_services:
   - sshd
   - NetworkManager
   - ollama
   - tailscaled
-
-# ZEN Coordinator integration
-zen_coordinator_url: http://192.168.0.58:8020
-memory_mcp_enabled: true
-memory_mcp_port: 8006

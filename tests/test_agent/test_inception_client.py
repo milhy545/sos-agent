@@ -24,6 +24,7 @@ async def test_query_non_stream(client):
         mock_session.__aenter__.return_value = mock_session
 
         mock_response = AsyncMock()
+        mock_response.raise_for_status = Mock()
         mock_response.json.return_value = {
             "choices": [{"message": {"content": "Response content"}}]
         }
@@ -42,6 +43,7 @@ async def test_query_stream(client):
         mock_session.__aenter__.return_value = mock_session
 
         mock_response = AsyncMock()
+        mock_response.raise_for_status = Mock()
 
         # Simulate SSE lines
         lines = [
