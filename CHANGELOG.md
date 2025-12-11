@@ -67,6 +67,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- End-to-end diagnostika: stub e2e test + volitelný live Mercury e2e (podmíněný env).
+- Jednostránkové shrnutí diagnostiky: Top findings s logy, Quick actions vázané na nálezy (GUI/disk/auth), Resources, Security, Next steps; deduplikace logů.
+
+### Changed
+- Auto-provider fallback podle dostupných klíčů; bezpečnější defaulty (bez ZEN/portů, SSH 22).
+- Timeouty a neblokující volání u providerů (Gemini/Inception), lepší hlášení při chybějících klíčích.
+
+### Notes
+- `.env` zůstává lokálně (necommitovat); live Mercury e2e vyžaduje `RUN_E2E_MERCURY=1` + `INCEPTION_API_KEY`.
+
+---
+
 ## [0.1.1] - 2024-12-04
 
 ### 🐛 Critical Bug Fixes
