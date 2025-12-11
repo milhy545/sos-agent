@@ -169,7 +169,7 @@ async def test_cli_gcloud_setup_safe(runner, mock_client_cls):
     runner = AsyncCliRunner()
 
     with patch("src.gcloud.manager.GCloudManager"):
-        result = await runner.invoke(cli, ["gcloud", "setup"])
+        result = await runner.invoke(cli, ["gcloud", "init"])
         assert result.exit_code == 0
         assert "Safe Mode" in result.output
 
@@ -180,6 +180,6 @@ async def test_cli_gcloud_setup_auto_cancelled(runner, mock_client_cls):
 
     with patch("src.gcloud.manager.GCloudManager"):
         # Decline confirmation
-        result = await runner.invoke(cli, ["gcloud", "setup", "--auto"], input="n\n")
+        result = await runner.invoke(cli, ["gcloud", "init", "--auto"], input="n\n")
         assert result.exit_code == 0
         assert "Setup cancelled" in result.output
