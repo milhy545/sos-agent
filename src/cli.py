@@ -19,6 +19,8 @@ from .tools.log_analyzer import analyze_system_logs
 console = Console()
 logger = logging.getLogger(__name__)
 
+MAX_LOG_SAMPLES = 10
+
 
 def setup_logging(verbose: bool = False) -> None:
     """Configure logging for SOS Agent."""
@@ -113,16 +115,32 @@ async def diagnose(ctx: click.Context, category: str) -> None:
     console.print("[dim]Collecting system logs (warnings)...[/dim]")
     log_data_warnings = await analyze_system_logs(time_range="24h", severity="warning")
 
-    # Merge data - combine errors and warnings
+    # Merge data - combine errors and warnings, dedupe by (unit, message)
+    def _dedupe(entries):
+        seen = set()
+        unique = []
+        for entry in entries:
+            key = (entry.get("unit", ""), entry.get("message", ""))
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(entry)
+        return unique
+
     log_data = {
-        "hardware_errors": log_data_errors["hardware_errors"]
-        + log_data_warnings["hardware_errors"],
-        "driver_errors": log_data_errors["driver_errors"]
-        + log_data_warnings["driver_errors"],
-        "service_errors": log_data_errors["service_errors"]
-        + log_data_warnings["service_errors"],
-        "security_warnings": log_data_errors["security_warnings"]
-        + log_data_warnings["security_warnings"],
+        "hardware_errors": _dedupe(
+            log_data_errors["hardware_errors"] + log_data_warnings["hardware_errors"]
+        ),
+        "driver_errors": _dedupe(
+            log_data_errors["driver_errors"] + log_data_warnings["driver_errors"]
+        ),
+        "service_errors": _dedupe(
+            log_data_errors["service_errors"] + log_data_warnings["service_errors"]
+        ),
+        "security_warnings": _dedupe(
+            log_data_errors["security_warnings"]
+            + log_data_warnings["security_warnings"]
+        ),
         "recommendations": log_data_errors["recommendations"]
         + log_data_warnings["recommendations"],
     }
@@ -208,54 +226,58 @@ System Load:
 
     other_errors = [e for e in log_data["service_errors"] if e not in gui_errors]
 
+    def _format_entries(entries, limit=MAX_LOG_SAMPLES):
+        if not entries:
+            return "No entries"
+        lines = [
+            f"- [{e['timestamp']}] {e.get('unit','unknown')}: {e.get('message','')}"
+            for e in entries[:limit]
+        ]
+        return "\n".join(lines)
+
     # STEP 5: Build prompt with ACTUAL DATA
     task = f"""
-Analyze the following REAL system diagnostic data and provide recommendations.
+Analyze the REAL collected data and return a concise one-page summary (max ~25 lines).
 
-=== CATEGORY: {category.upper()} ===
+System: 
+{system_info.strip()}
 
-=== SYSTEM INFORMATION ===
-{system_info}
+Resources:
+{resource_data.strip()}
 
-IMPORTANT: Use the correct package manager for this OS!
-- Debian/Ubuntu/MX Linux → apt/apt-get
-- Red Hat/Fedora/CentOS → dnf/yum
-- Arch Linux → pacman
+Log summary (last 24h, deduped):
+- Hardware errors: {len(log_data['hardware_errors'])}
+- Driver errors: {len(log_data['driver_errors'])}
+- Service errors: {len(log_data['service_errors'])} (GUI/display: {len(gui_errors)})
+- Security warnings: {len(log_data['security_warnings'])}
 
-=== SYSTEM LOGS (Last 24h) ===
-Hardware Errors: {len(log_data['hardware_errors'])} found
-Driver Errors: {len(log_data['driver_errors'])} found
-Service Errors: {len(log_data['service_errors'])} found (including {len(gui_errors)} GUI/Display related)
-Security Warnings: {len(log_data['security_warnings'])} found
+Sample logs (showed to you):
+GUI/Display (up to {MAX_LOG_SAMPLES}):
+{_format_entries(gui_errors)}
 
-GUI/Display Errors (HIGH PRIORITY):
-{chr(10).join([f"- [{e['timestamp']}] {e['unit']}: {e['message']}" for e in gui_errors[:20]]) if gui_errors else "No GUI/Display errors found"}
+Hardware (up to {MAX_LOG_SAMPLES}):
+{_format_entries(log_data['hardware_errors'])}
 
-Hardware Error Details:
-{chr(10).join([f"- [{e['timestamp']}] {e['unit']}: {e['message']}" for e in log_data['hardware_errors'][:20]]) if log_data['hardware_errors'] else "No hardware errors found"}
+Driver (up to {MAX_LOG_SAMPLES}):
+{_format_entries(log_data['driver_errors'])}
 
-Driver Error Details:
-{chr(10).join([f"- [{e['timestamp']}] {e['unit']}: {e['message']}" for e in log_data['driver_errors'][:20]]) if log_data['driver_errors'] else "No driver errors found"}
+Other service (up to {MAX_LOG_SAMPLES}):
+{_format_entries(other_errors)}
 
-Other Service Errors:
-{chr(10).join([f"- [{e['timestamp']}] {e['unit']}: {e['message']}" for e in other_errors[:15]]) if other_errors else "No other service errors found"}
+Security (up to {MAX_LOG_SAMPLES}):
+{_format_entries(log_data['security_warnings'])}
 
-=== SYSTEM RESOURCES ===
-{resource_data}
+Your response must be a single-page summary with these sections (no tables):
+1) Top findings (3-5 bullets) with severity labels AND embed the referenced log line (timestamp, unit, message) for each.
+2) Quick actions (max 5 commands), each tied to a Top finding. Must include: one GUI log/repair step, one disk check/cleanup step, and one auth/winbind verification step. Prefer diagnostics/restarts; avoid reinstall/disable unless explicitly justified. Reject generic maintenance commands like "apt update/upgrade/clean" unless explicitly tied to a finding.
+3) Resources: one line with load, RAM/swap, and top disk hot spots (mount + used% from provided data).
+4) Security notes: include at least one log line if any; otherwise say "none seen".
+5) Next steps: 2-3 follow-up checks (log commands over destructive steps).
 
-=== YOUR TASK ===
-Based on the ACTUAL DATA above (not speculation):
-1. Identify the root causes of any errors
-2. Assess severity (CRITICAL, HIGH, MEDIUM, LOW)
-3. Provide specific, actionable fixes with commands
-4. Prioritize by risk and impact
-
-IMPORTANT:
-- Do NOT repeat this prompt in your response
-- Start directly with analysis
-- Format as natural flowing text paragraphs, NOT tables
-- Use bullet points for recommendations
-- Be specific - reference actual errors from the data above
+Rules:
+- Reference the sample logs by unit/message; do not invent data.
+- Keep it compact; no ASCII art, no long paragraphs, no repetition of this prompt.
+- Use package manager appropriate to the detected OS (Debian/Ubuntu → apt, RedHat → dnf, Arch → pacman).
 """
 
     try:
