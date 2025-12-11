@@ -81,6 +81,13 @@ async def analyze_system_logs(
             returncode = process_all.returncode
         process = FakeProcess()
 
+        # Check kernel logs specifically
+        if process_kernel.returncode != 0 and stderr_kernel:
+            logger.error(f"journalctl kernel failed: {stderr_kernel.decode()}")
+            results["recommendations"].append(
+                f"⚠️  Failed to read kernel logs: {stderr_kernel.decode().strip()}"
+            )
+
         if process.returncode == 0 and stdout:
             # Parse JSON output line by line
             for line in stdout.decode().strip().split("\n"):
