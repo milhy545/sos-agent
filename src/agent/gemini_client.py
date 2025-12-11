@@ -71,6 +71,7 @@ class GeminiClient:
         self.logger.info(f"Querying Gemini: {prompt[:100]}...")
 
         try:
+
             async def _generate():
                 return await asyncio.to_thread(
                     self.model.generate_content, prompt, stream=stream
