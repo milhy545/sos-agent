@@ -88,3 +88,4 @@ src/claude_cli_auth/
 
 .gemini/
 gha-creds-*.json
+MERGE_DEPENDABOT_PRS.md
