@@ -76,7 +76,8 @@ async def test_diagnose_stub_provider(monkeypatch):
     monkeypatch.setattr("src.agent.client.InceptionClient.query", fake_inception_query)
 
     runner = AsyncCliRunner()
-    result = await runner.invoke(cli, ["diagnose", "--category", "services"])
+    # Explicitně vynutit providera 'inception', aby se použil náš mock a ne auto-detekovaný Gemini
+    result = await runner.invoke(cli, ["--provider", "inception", "diagnose", "--category", "services"])
 
     assert result.exit_code == 0
     assert "service-x.service" in result.output
