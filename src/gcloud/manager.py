@@ -56,7 +56,7 @@ class GCloudManager:
                 "Install: https://cloud.google.com/sdk/docs/install"
             )
 
-    def _run_gcloud_command(self, args: List[str]) -> Dict[str, Any]:
+    def _run_gcloud_command(self, args: List[str]) -> Any:
         """Run gcloud command and return JSON output."""
         cmd = ["gcloud"] + args + ["--format=json"]
         logger.debug(f"Running: {' '.join(cmd)}")
@@ -135,12 +135,12 @@ class GCloudManager:
 
             # Parse quota data
             limit_value = int(
-                data.get("consumerQuotaLimits", [{}])[0]
+                data.get("consumerQuotaLimits", [{}])[0]  # type: ignore
                 .get("quotaLimit", {})
                 .get("defaultLimit", 0)
             )
             current_usage = int(
-                data.get("consumerQuotaMetrics", [{}])[0].get("usage", 0)
+                data.get("consumerQuotaMetrics", [{}])[0].get("usage", 0)  # type: ignore
             )
 
             return QuotaStatus(

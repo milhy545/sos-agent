@@ -1,7 +1,7 @@
 """SOS Agent client with multi-model support (AgentAPI, Gemini, OpenAI)."""
 
 import logging
-from typing import Any, AsyncIterator, Dict, Optional
+from typing import Any, AsyncIterator, Dict, Optional, Union
 
 from .agentapi_client import AgentAPIClient
 from .gemini_client import GeminiClient
@@ -40,6 +40,7 @@ class SOSAgentClient:
             self.config.ai_provider = provider
 
         # Initialize AI client based on provider
+        self.client: Any
         if provider == "claude-agentapi":
             self.client = AgentAPIClient(
                 api_url="http://localhost:3284",
