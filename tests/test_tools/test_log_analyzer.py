@@ -5,7 +5,7 @@ from src.tools.log_analyzer import analyze_system_logs
 @pytest.mark.asyncio
 async def test_analyze_system_logs_success():
     """Test successful log analysis."""
-    with patch("asyncio.create_subprocess_shell") as mock_shell:
+    with patch("asyncio.create_subprocess_exec") as mock_shell:
         process_all = AsyncMock()
         process_all.communicate.return_value = (
             b'{"MESSAGE": "Test error", "_SYSTEMD_UNIT": "test.service", "PRIORITY": "3", "__REALTIME_TIMESTAMP": "1630000000000"}\n',
@@ -33,7 +33,7 @@ async def test_analyze_system_logs_kernel_failure_silenced():
     """
     Test the BUG where kernel log failure is ignored if system logs succeed.
     """
-    with patch("asyncio.create_subprocess_shell") as mock_shell:
+    with patch("asyncio.create_subprocess_exec") as mock_shell:
         # Setup mock for process_all (SUCCESS)
         process_all = AsyncMock()
         process_all.communicate.return_value = (
@@ -71,7 +71,7 @@ async def test_analyze_system_logs_kernel_failure_silenced():
 @pytest.mark.asyncio
 async def test_analyze_system_logs_all_failure():
     """Test when system logs fail."""
-    with patch("asyncio.create_subprocess_shell") as mock_shell:
+    with patch("asyncio.create_subprocess_exec") as mock_shell:
         process_all = AsyncMock()
         process_all.communicate.return_value = (b"", b"Journalctl failed")
         process_all.returncode = 1
@@ -90,7 +90,7 @@ async def test_analyze_system_logs_all_failure():
 @pytest.mark.asyncio
 async def test_analyze_system_logs_parsing():
     """Test parsing of various log formats."""
-    with patch("asyncio.create_subprocess_shell") as mock_shell:
+    with patch("asyncio.create_subprocess_exec") as mock_shell:
         process_all = AsyncMock()
         output = b"""
         {"MESSAGE": "Hardware error CPU", "_SYSTEMD_UNIT": "", "PRIORITY": "3"}

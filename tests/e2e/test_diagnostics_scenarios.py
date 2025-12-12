@@ -23,24 +23,23 @@ async def test_gpu_regression_radeon(monkeypatch):
     gpu_log = create_log_line("[drm:radeon_ib_ring_tests] *ERROR* ring gfx test failed")
 
     # Mock subprocess
-    async def fake_create_subprocess_shell(cmd, **kwargs):
+    async def fake_create_subprocess_exec(program, *args, **kwargs):
         mock_proc = MagicMock()
         mock_proc.returncode = 0
 
         # Determine output based on command
-        if "-k" in cmd: # Kernel logs
+        if "-k" in args: # Kernel logs
             stdout = gpu_log.encode()
         else: # System logs
             stdout = b""
 
-        # Async mock for communicate
         async def async_communicate():
             return (stdout, b"")
 
         mock_proc.communicate = async_communicate
         return mock_proc
 
-    monkeypatch.setattr("asyncio.create_subprocess_shell", fake_create_subprocess_shell)
+    monkeypatch.setattr("asyncio.create_subprocess_exec", fake_create_subprocess_exec)
 
     results = await analyze_system_logs(time_range="1h")
 
@@ -58,11 +57,11 @@ async def test_hardware_critical_thermal(monkeypatch):
     """
     hw_log = create_log_line("CPU thermal throttling detected", unit="kernel")
 
-    async def fake_create_subprocess_shell(cmd, **kwargs):
+    async def fake_create_subprocess_exec(program, *args, **kwargs):
         mock_proc = MagicMock()
         mock_proc.returncode = 0
 
-        if "-k" in cmd:
+        if "-k" in args:
             stdout = hw_log.encode()
         else:
             stdout = b""
@@ -73,7 +72,7 @@ async def test_hardware_critical_thermal(monkeypatch):
         mock_proc.communicate = async_communicate
         return mock_proc
 
-    monkeypatch.setattr("asyncio.create_subprocess_shell", fake_create_subprocess_shell)
+    monkeypatch.setattr("asyncio.create_subprocess_exec", fake_create_subprocess_exec)
 
     results = await analyze_system_logs()
 
@@ -90,11 +89,11 @@ async def test_gui_warnings_plasma(monkeypatch):
     """
     gui_log = create_log_line("plasma-kded failed to start", unit="plasma-kded.service")
 
-    async def fake_create_subprocess_shell(cmd, **kwargs):
+    async def fake_create_subprocess_exec(program, *args, **kwargs):
         mock_proc = MagicMock()
         mock_proc.returncode = 0
 
-        if "-k" in cmd:
+        if "-k" in args:
             stdout = b""
         else:
             stdout = gui_log.encode()
@@ -105,7 +104,7 @@ async def test_gui_warnings_plasma(monkeypatch):
         mock_proc.communicate = async_communicate
         return mock_proc
 
-    monkeypatch.setattr("asyncio.create_subprocess_shell", fake_create_subprocess_shell)
+    monkeypatch.setattr("asyncio.create_subprocess_exec", fake_create_subprocess_exec)
 
     results = await analyze_system_logs(severity="warning")
 
@@ -121,11 +120,11 @@ async def test_service_failure_nginx(monkeypatch):
     """
     svc_log = create_log_line("nginx.service: Failed with result 'exit-code'.", unit="nginx.service")
 
-    async def fake_create_subprocess_shell(cmd, **kwargs):
+    async def fake_create_subprocess_exec(program, *args, **kwargs):
         mock_proc = MagicMock()
         mock_proc.returncode = 0
 
-        if "-k" in cmd:
+        if "-k" in args:
             stdout = b""
         else:
             stdout = svc_log.encode()
@@ -136,7 +135,7 @@ async def test_service_failure_nginx(monkeypatch):
         mock_proc.communicate = async_communicate
         return mock_proc
 
-    monkeypatch.setattr("asyncio.create_subprocess_shell", fake_create_subprocess_shell)
+    monkeypatch.setattr("asyncio.create_subprocess_exec", fake_create_subprocess_exec)
 
     results = await analyze_system_logs()
 
