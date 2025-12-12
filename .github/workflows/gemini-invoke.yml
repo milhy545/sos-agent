@@ -24,12 +24,20 @@ jobs:
       id-token: 'write'
       issues: 'write'
       pull-requests: 'write'
+    env:
+      TITLE: '${{ github.event.pull_request.title || github.event.issue.title }}'
+      DESCRIPTION: '${{ github.event.pull_request.body || github.event.issue.body }}'
+      EVENT_NAME: '${{ github.event_name }}'
+      IS_PULL_REQUEST: '${{ !!github.event.pull_request }}'
+      ISSUE_NUMBER: '${{ github.event.pull_request.number || github.event.issue.number }}'
+      REPOSITORY: '${{ github.repository }}'
+      ADDITIONAL_CONTEXT: '${{ inputs.additional_context }}'
     steps:
       - name: 'Mint identity token'
         id: 'mint_identity_token'
         if: |-
           ${{ vars.APP_ID }}
-        uses: 'actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94' # ratchet:actions/create-github-app-token@v2
+        uses: 'actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b' # ratchet:actions/create-github-app-token@v2
         with:
           app-id: '${{ vars.APP_ID }}'
           private-key: '${{ secrets.APP_PRIVATE_KEY }}'
@@ -37,18 +45,22 @@ jobs:
           permission-issues: 'write'
           permission-pull-requests: 'write'
 
+      - name: 'Checkout repository'
+        uses: 'actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8' # ratchet:actions/checkout@v5
+
+      - name: 'Setup Gemini Configuration'
+        run: |
+          mkdir -p .gemini/commands
+          for file in .github/commands/*.toml; do
+            # Use envsubst to replace ${VAR} with environment variable values
+            envsubst < "$file" > ".gemini/commands/$(basename "$file")"
+          done
+
       - name: 'Run Gemini CLI'
         id: 'run_gemini'
         uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude
         env:
-          TITLE: '${{ github.event.pull_request.title || github.event.issue.title }}'
-          DESCRIPTION: '${{ github.event.pull_request.body || github.event.issue.body }}'
-          EVENT_NAME: '${{ github.event_name }}'
           GITHUB_TOKEN: '${{ steps.mint_identity_token.outputs.token || secrets.GITHUB_TOKEN || github.token }}'
-          IS_PULL_REQUEST: '${{ !!github.event.pull_request }}'
-          ISSUE_NUMBER: '${{ github.event.pull_request.number || github.event.issue.number }}'
-          REPOSITORY: '${{ github.repository }}'
-          ADDITIONAL_CONTEXT: '${{ inputs.additional_context }}'
         with:
           gcp_location: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
           gcp_project_id: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
@@ -61,7 +73,7 @@ jobs:
           google_api_key: '${{ secrets.GOOGLE_API_KEY }}'
           use_gemini_code_assist: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
           use_vertex_ai: '${{ vars.GOOGLE_GENAI_USE_VERTEXAI }}'
-          upload_artifacts: '${{ vars.UPLOAD_ARTIFACTS }}'
+          upload_artifacts: 'true'
           workflow_name: 'gemini-invoke'
           settings: |-
             {

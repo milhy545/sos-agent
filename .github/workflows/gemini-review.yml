@@ -25,12 +25,18 @@ jobs:
       id-token: 'write'
       issues: 'write'
       pull-requests: 'write'
+    env:
+      ISSUE_TITLE: '${{ github.event.pull_request.title || github.event.issue.title }}'
+      ISSUE_BODY: '${{ github.event.pull_request.body || github.event.issue.body }}'
+      PULL_REQUEST_NUMBER: '${{ github.event.pull_request.number || github.event.issue.number }}'
+      REPOSITORY: '${{ github.repository }}'
+      ADDITIONAL_CONTEXT: '${{ inputs.additional_context }}'
     steps:
       - name: 'Mint identity token'
         id: 'mint_identity_token'
         if: |-
           ${{ vars.APP_ID }}
-        uses: 'actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94' # ratchet:actions/create-github-app-token@v2
+        uses: 'actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b' # ratchet:actions/create-github-app-token@v2
         with:
           app-id: '${{ vars.APP_ID }}'
           private-key: '${{ secrets.APP_PRIVATE_KEY }}'
@@ -39,18 +45,21 @@ jobs:
           permission-pull-requests: 'write'
 
       - name: 'Checkout repository'
-        uses: 'actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8' # ratchet:actions/checkout@v5
+        uses: 'actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8' # ratchet:actions/checkout@v5
+
+      - name: 'Setup Gemini Configuration'
+        run: |
+          mkdir -p .gemini/commands
+          for file in .github/commands/*.toml; do
+            # Use envsubst to replace ${VAR} with environment variable values
+            envsubst < "$file" > ".gemini/commands/$(basename "$file")"
+          done
 
       - name: 'Run Gemini pull request review'
         uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude
         id: 'gemini_pr_review'
         env:
           GITHUB_TOKEN: '${{ steps.mint_identity_token.outputs.token || secrets.GITHUB_TOKEN || github.token }}'
-          ISSUE_TITLE: '${{ github.event.pull_request.title || github.event.issue.title }}'
-          ISSUE_BODY: '${{ github.event.pull_request.body || github.event.issue.body }}'
-          PULL_REQUEST_NUMBER: '${{ github.event.pull_request.number || github.event.issue.number }}'
-          REPOSITORY: '${{ github.repository }}'
-          ADDITIONAL_CONTEXT: '${{ inputs.additional_context }}'
         with:
           gcp_location: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
           gcp_project_id: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
