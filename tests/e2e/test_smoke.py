@@ -1,16 +1,16 @@
-import os
 import sys
 import pytest
-from unittest.mock import MagicMock
 from src.agent.config import SOSConfig
 from src.agent.client import SOSAgentClient
 from src.cli import cli
 from asyncclick.testing import CliRunner as AsyncCliRunner
 
+
 @pytest.mark.asyncio
 async def test_python_version():
     """Verify running on Python 3.11+."""
     assert sys.version_info >= (3, 11), "SOS Agent requires Python 3.11+"
+
 
 @pytest.mark.asyncio
 async def test_provider_init_gemini(monkeypatch):
@@ -27,6 +27,7 @@ async def test_provider_init_gemini(monkeypatch):
     assert client.client_type == "gemini"
     assert client.config.gemini_api_key == "test_key"
 
+
 @pytest.mark.asyncio
 async def test_provider_init_mercury(monkeypatch):
     """Verify Mercury (Inception) provider initialization."""
@@ -36,6 +37,7 @@ async def test_provider_init_mercury(monkeypatch):
     assert client.client_type == "inception"
     assert client.config.inception_api_key == "test_key"
 
+
 @pytest.mark.asyncio
 async def test_provider_init_openai(monkeypatch):
     """Verify OpenAI provider initialization."""
@@ -44,6 +46,7 @@ async def test_provider_init_openai(monkeypatch):
     client = SOSAgentClient(config)
     assert client.client_type == "openai"
     assert client.config.openai_api_key == "test_key"
+
 
 @pytest.mark.asyncio
 async def test_env_loading_behavior(monkeypatch):
@@ -55,6 +58,7 @@ async def test_env_loading_behavior(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "env_defined_key")
     config = SOSConfig()
     assert config.anthropic_api_key == "env_defined_key"
+
 
 @pytest.mark.asyncio
 async def test_cli_help():

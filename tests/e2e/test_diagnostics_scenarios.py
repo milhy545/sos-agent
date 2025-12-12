@@ -1,17 +1,20 @@
 import pytest
 import json
-import asyncio
 from unittest.mock import MagicMock
 from src.tools.log_analyzer import analyze_system_logs
 
+
 # Helper to create JSON log line
 def create_log_line(message, unit="kernel", priority="3", timestamp="1600000000000000"):
-    return json.dumps({
-        "MESSAGE": message,
-        "_SYSTEMD_UNIT": unit,
-        "PRIORITY": priority,
-        "__REALTIME_TIMESTAMP": timestamp
-    })
+    return json.dumps(
+        {
+            "MESSAGE": message,
+            "_SYSTEMD_UNIT": unit,
+            "PRIORITY": priority,
+            "__REALTIME_TIMESTAMP": timestamp,
+        }
+    )
+
 
 @pytest.mark.asyncio
 async def test_gpu_regression_radeon(monkeypatch):
@@ -28,9 +31,9 @@ async def test_gpu_regression_radeon(monkeypatch):
         mock_proc.returncode = 0
 
         # Determine output based on command
-        if "-k" in args: # Kernel logs
+        if "-k" in args:  # Kernel logs
             stdout = gpu_log.encode()
-        else: # System logs
+        else:  # System logs
             stdout = b""
 
         async def async_communicate():
@@ -47,6 +50,7 @@ async def test_gpu_regression_radeon(monkeypatch):
     assert len(results["driver_errors"]) > 0
     assert any("radeon" in e["message"] for e in results["driver_errors"])
     assert any("driver" in r.lower() for r in results["recommendations"])
+
 
 @pytest.mark.asyncio
 async def test_hardware_critical_thermal(monkeypatch):
@@ -80,6 +84,7 @@ async def test_hardware_critical_thermal(monkeypatch):
     assert any("CRITICAL" in r for r in results["recommendations"])
     assert any("thermal" in e["message"] for e in results["hardware_errors"])
 
+
 @pytest.mark.asyncio
 async def test_gui_warnings_plasma(monkeypatch):
     """
@@ -111,6 +116,7 @@ async def test_gui_warnings_plasma(monkeypatch):
     assert len(results["service_errors"]) > 0
     assert any("plasma" in e["message"] for e in results["service_errors"])
 
+
 @pytest.mark.asyncio
 async def test_service_failure_nginx(monkeypatch):
     """
@@ -118,7 +124,9 @@ async def test_service_failure_nginx(monkeypatch):
     Inject: nginx failed
     Expect: Service error.
     """
-    svc_log = create_log_line("nginx.service: Failed with result 'exit-code'.", unit="nginx.service")
+    svc_log = create_log_line(
+        "nginx.service: Failed with result 'exit-code'.", unit="nginx.service"
+    )
 
     async def fake_create_subprocess_exec(program, *args, **kwargs):
         mock_proc = MagicMock()

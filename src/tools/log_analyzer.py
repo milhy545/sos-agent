@@ -52,10 +52,13 @@ async def analyze_system_logs(
 
         # Use create_subprocess_exec to avoid shell injection
         args_common = [
-            "--since", f"{time_range} ago",
-            "-p", journalctl_severity,
+            "--since",
+            f"{time_range} ago",
+            "-p",
+            journalctl_severity,
             "--no-pager",
-            "-o", "json"
+            "-o",
+            "json",
         ]
 
         cmd_all = ["journalctl"] + args_common

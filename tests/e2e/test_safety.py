@@ -1,8 +1,9 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from asyncclick.testing import CliRunner as AsyncCliRunner
 from src.agent.permissions import safe_permission_handler
 from src.cli import cli
+
 
 @pytest.mark.asyncio
 async def test_critical_services_protection():
@@ -15,17 +16,16 @@ async def test_critical_services_protection():
         "systemctl stop sshd",
         "systemctl stop NetworkManager",
         "systemctl stop ollama",
-        "systemctl disable tailscaled"
+        "systemctl disable tailscaled",
     ]
 
     for cmd in critical_cmds:
         result = await safe_permission_handler(
-            "Bash",
-            {"command": cmd},
-            {"emergency_mode": False}
+            "Bash", {"command": cmd}, {"emergency_mode": False}
         )
         assert result["behavior"] == "deny", f"Failed to block: {cmd}"
         assert "critical service" in result["reason"].lower()
+
 
 @pytest.mark.asyncio
 async def test_forbidden_commands():
@@ -34,20 +34,15 @@ async def test_forbidden_commands():
     Attempt rm -rf, mkfs.
     Expect: DENY (unless approved, but here checking detection).
     """
-    forbidden = [
-        "rm -rf /",
-        "mkfs.ext4 /dev/sda1",
-        "dd if=/dev/zero of=/dev/sda"
-    ]
+    forbidden = ["rm -rf /", "mkfs.ext4 /dev/sda1", "dd if=/dev/zero of=/dev/sda"]
 
     for cmd in forbidden:
         result = await safe_permission_handler(
-            "Bash",
-            {"command": cmd},
-            {"emergency_mode": False}
+            "Bash", {"command": cmd}, {"emergency_mode": False}
         )
         assert result["behavior"] == "deny", f"Failed to block: {cmd}"
         assert "restricted operation" in result["reason"].lower()
+
 
 @pytest.mark.asyncio
 async def test_emergency_whitelist():
@@ -55,19 +50,14 @@ async def test_emergency_whitelist():
     Phase 4: Emergency Mode Whitelist (Logic Unit Test)
     Verify safe commands are allowed in emergency mode without extra checks.
     """
-    safe_cmds = [
-        "journalctl -xe",
-        "free -h",
-        "top -bn1"
-    ]
+    safe_cmds = ["journalctl -xe", "free -h", "top -bn1"]
 
     for cmd in safe_cmds:
         result = await safe_permission_handler(
-            "Bash",
-            {"command": cmd},
-            {"emergency_mode": True}
+            "Bash", {"command": cmd}, {"emergency_mode": True}
         )
         assert result["behavior"] == "allow", f"Failed to whitelist: {cmd}"
+
 
 @pytest.mark.asyncio
 async def test_safety_integration_real(monkeypatch):
@@ -87,7 +77,9 @@ async def test_safety_integration_real(monkeypatch):
 
     # Spy on the handler
     # Note: We must patch it where it is used (src.cli) because it was imported with 'from'
-    with patch("src.cli.safe_permission_handler", side_effect=safe_permission_handler) as mock_handler:
+    with patch(
+        "src.cli.safe_permission_handler", side_effect=safe_permission_handler
+    ) as mock_handler:
         runner = AsyncCliRunner()
         await runner.invoke(cli, ["--provider", "inception", "fix", "services"])
 

@@ -1,7 +1,7 @@
 """SOS Agent client with multi-model support (AgentAPI, Gemini, OpenAI)."""
 
 import logging
-from typing import Any, AsyncIterator, Dict, Optional, Union
+from typing import Any, AsyncIterator, Dict, Optional
 
 from .agentapi_client import AgentAPIClient
 from .gemini_client import GeminiClient

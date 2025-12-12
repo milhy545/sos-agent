@@ -1,23 +1,24 @@
 import pytest
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from unittest.mock import Mock, patch, AsyncMock
 from src.agent.agentapi_client import AgentAPIClient
 import aiohttp
-import subprocess
-import asyncio
+
 
 @pytest.fixture
 def api_client():
     return AgentAPIClient(api_url="http://test-url", agentapi_path="/bin/agentapi")
 
+
 @pytest.mark.asyncio
 async def test_start_server_already_managed(api_client):
     api_client.server_process = Mock()
-    api_client.server_process.poll.return_value = None # Running
+    api_client.server_process.poll.return_value = None  # Running
 
     await api_client.start_server()
 
     # Should not start new process
     api_client.server_process.poll.assert_called()
+
 
 @pytest.mark.asyncio
 async def test_start_server_external(api_client):
@@ -35,6 +36,7 @@ async def test_start_server_external(api_client):
         # Should detect external server and return without starting new one
         assert api_client.server_process is None
 
+
 @pytest.mark.asyncio
 async def test_start_server_success(api_client):
     with patch("aiohttp.ClientSession") as MockSession:
@@ -45,7 +47,7 @@ async def test_start_server_success(api_client):
 
         with patch("subprocess.Popen") as mock_popen:
             mock_process = Mock()
-            mock_process.poll.return_value = None # Running successfully
+            mock_process.poll.return_value = None  # Running successfully
             mock_popen.return_value = mock_process
 
             # Reduce sleep time
@@ -54,6 +56,7 @@ async def test_start_server_success(api_client):
 
             assert api_client.server_process == mock_process
             mock_popen.assert_called_once()
+
 
 @pytest.mark.asyncio
 async def test_stop_server(api_client):
@@ -64,6 +67,7 @@ async def test_stop_server(api_client):
 
     mock_process.terminate.assert_called_once()
     assert api_client.server_process is None
+
 
 @pytest.mark.asyncio
 async def test_send_message(api_client):
@@ -81,6 +85,7 @@ async def test_send_message(api_client):
         assert result == {"status": "ok"}
         mock_session.post.assert_called()
 
+
 @pytest.mark.asyncio
 async def test_get_messages(api_client):
     with patch("aiohttp.ClientSession") as MockSession:
@@ -89,13 +94,16 @@ async def test_get_messages(api_client):
 
         mock_response = AsyncMock()
         mock_response.raise_for_status = Mock()
-        mock_response.json.return_value = {"messages": [{"role": "agent", "content": "Hi"}]}
+        mock_response.json.return_value = {
+            "messages": [{"role": "agent", "content": "Hi"}]
+        }
         mock_session.get.return_value.__aenter__.return_value = mock_response
 
         messages = await api_client.get_messages()
 
         assert len(messages) == 1
         assert messages[0]["content"] == "Hi"
+
 
 @pytest.mark.asyncio
 async def test_query_stream(api_client):
@@ -106,11 +114,13 @@ async def test_query_stream(api_client):
     # 1. No messages
     # 2. One agent message
     # 3. Same message (agent done)
-    api_client.get_messages = AsyncMock(side_effect=[
-        [],
-        [{"role": "agent", "content": "Hello"}],
-        [{"role": "agent", "content": "Hello"}]
-    ])
+    api_client.get_messages = AsyncMock(
+        side_effect=[
+            [],
+            [{"role": "agent", "content": "Hello"}],
+            [{"role": "agent", "content": "Hello"}],
+        ]
+    )
 
     with patch("asyncio.sleep", return_value=None):
         chunks = []

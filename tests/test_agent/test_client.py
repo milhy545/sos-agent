@@ -1,7 +1,8 @@
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import patch
 from src.agent.client import SOSAgentClient
 from src.agent.config import SOSConfig
+
 
 @pytest.fixture
 def mock_config():
@@ -11,11 +12,13 @@ def mock_config():
     config.inception_api_key = "test_key"
     return config
 
+
 def test_client_init_gemini(mock_config):
     mock_config.ai_provider = "gemini"
     with patch("src.agent.gemini_client.genai"):
         client = SOSAgentClient(mock_config)
         assert client.client_type == "gemini"
+
 
 def test_client_init_openai(mock_config):
     mock_config.ai_provider = "openai"
@@ -24,10 +27,12 @@ def test_client_init_openai(mock_config):
         client = SOSAgentClient(mock_config)
         assert client.client_type == "openai"
 
+
 def test_client_init_invalid(mock_config):
     mock_config.ai_provider = "invalid"
     with pytest.raises(ValueError):
         SOSAgentClient(mock_config)
+
 
 @pytest.mark.asyncio
 async def test_execute_rescue_task_gemini(mock_config):
@@ -59,6 +64,7 @@ async def test_execute_rescue_task_gemini(mock_config):
         assert "System Context:" in task_arg
         assert "IMPORTANT SAFETY RULES:" in task_arg
 
+
 @pytest.mark.asyncio
 async def test_execute_rescue_task_error_handling(mock_config):
     mock_config.ai_provider = "gemini"
@@ -74,11 +80,12 @@ async def test_execute_rescue_task_error_handling(mock_config):
 
         assert any("❌ ERROR" in r for r in responses)
 
+
 @pytest.mark.asyncio
 async def test_execute_emergency_diagnostics(mock_config):
     # This doesn't need a specific provider
     mock_config.ai_provider = "gemini"
-    with patch("src.agent.client.GeminiClient"): # Just to satisfy init
+    with patch("src.agent.client.GeminiClient"):  # Just to satisfy init
         client = SOSAgentClient(mock_config)
 
         with patch("subprocess.run") as mock_run:

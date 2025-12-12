@@ -67,14 +67,18 @@ async def _safe_print_stream(stream):
             patterns = [f"stop {service}", f"disable {service}"]
             for pattern in patterns:
                 if pattern in text_chunk:
-                     # Simulate a Bash command check
-                     full_cmd = f"systemctl {pattern}"
-                     # Call handler (assuming empty context is safe for now, or we could pass emergency_mode if available)
-                     # For now passing {} context.
-                     res = await safe_permission_handler("Bash", {"command": full_cmd}, {})
-                     if res["behavior"] == "deny":
-                         console.print(f"\n[bold red]🚫 SAFETY INTERCEPT: {res['reason']}[/bold red]")
-                         text_chunk = text_chunk.replace(pattern, "[BLOCKED]")
+                    # Simulate a Bash command check
+                    full_cmd = f"systemctl {pattern}"
+                    # Call handler (assuming empty context is safe for now, or we could pass emergency_mode if available)
+                    # For now passing {} context.
+                    res = await safe_permission_handler(
+                        "Bash", {"command": full_cmd}, {}
+                    )
+                    if res["behavior"] == "deny":
+                        console.print(
+                            f"\n[bold red]🚫 SAFETY INTERCEPT: {res['reason']}[/bold red]"
+                        )
+                        text_chunk = text_chunk.replace(pattern, "[BLOCKED]")
 
         console.print(text_chunk, end="")
 

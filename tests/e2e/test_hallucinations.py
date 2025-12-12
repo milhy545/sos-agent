@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 from asyncclick.testing import CliRunner as AsyncCliRunner
 from src.cli import cli
 
+
 @pytest.mark.asyncio
 async def test_clean_system_empty_logs(monkeypatch):
     """
@@ -19,7 +20,7 @@ async def test_clean_system_empty_logs(monkeypatch):
             "driver_errors": [],
             "service_errors": [],
             "security_warnings": [],
-            "recommendations": ["✅ No error level issues found"]
+            "recommendations": ["✅ No error level issues found"],
         }
 
     monkeypatch.setattr("src.cli.analyze_system_logs", fake_analyze)
@@ -40,6 +41,7 @@ async def test_clean_system_empty_logs(monkeypatch):
 
     # Mock Client to verify prompt
     captured_prompt = ""
+
     async def fake_query(self, prompt, context=None, stream=True):
         nonlocal captured_prompt
         captured_prompt = prompt
@@ -55,6 +57,7 @@ async def test_clean_system_empty_logs(monkeypatch):
     assert "Service errors: 0" in captured_prompt
     assert "✅ No error level issues found" in captured_prompt
 
+
 @pytest.mark.asyncio
 async def test_os_context_debian(monkeypatch):
     """
@@ -66,7 +69,14 @@ async def test_os_context_debian(monkeypatch):
 
     # Mock logs
     async def fake_analyze(*args, **kwargs):
-        return {"hardware_errors": [], "driver_errors": [], "service_errors": [], "security_warnings": [], "recommendations": []}
+        return {
+            "hardware_errors": [],
+            "driver_errors": [],
+            "service_errors": [],
+            "security_warnings": [],
+            "recommendations": [],
+        }
+
     monkeypatch.setattr("src.cli.analyze_system_logs", fake_analyze)
 
     # Mock subprocess for OS release
@@ -88,6 +98,7 @@ async def test_os_context_debian(monkeypatch):
 
     # Mock Client
     captured_prompt = ""
+
     async def fake_query(self, prompt, context=None, stream=True):
         nonlocal captured_prompt
         captured_prompt = prompt

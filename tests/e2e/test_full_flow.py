@@ -1,7 +1,8 @@
 import pytest
 from asyncclick.testing import CliRunner as AsyncCliRunner
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from src.cli import cli
+
 
 @pytest.mark.asyncio
 async def test_full_user_journey(monkeypatch):
@@ -14,11 +15,18 @@ async def test_full_user_journey(monkeypatch):
     async def fake_analyze(*args, **kwargs):
         return {
             "hardware_errors": [],
-            "driver_errors": [{"message": "NVIDIA error", "unit": "kernel", "timestamp": "2025-01-01 00:00:00"}],
+            "driver_errors": [
+                {
+                    "message": "NVIDIA error",
+                    "unit": "kernel",
+                    "timestamp": "2025-01-01 00:00:00",
+                }
+            ],
             "service_errors": [],
             "security_warnings": [],
-            "recommendations": ["Update driver"]
+            "recommendations": ["Update driver"],
         }
+
     monkeypatch.setattr("src.cli.analyze_system_logs", fake_analyze)
 
     # Mock Subprocess (shared)
@@ -34,6 +42,7 @@ async def test_full_user_journey(monkeypatch):
 
         async def async_communicate():
             return (stdout, b"")
+
         mock_proc.communicate = async_communicate
         return mock_proc
 
@@ -56,7 +65,9 @@ async def test_full_user_journey(monkeypatch):
     runner = AsyncCliRunner()
 
     # Step 1: Diagnose
-    res1 = await runner.invoke(cli, ["--provider", "inception", "diagnose", "--category", "hardware"])
+    res1 = await runner.invoke(
+        cli, ["--provider", "inception", "diagnose", "--category", "hardware"]
+    )
     assert res1.exit_code == 0
     assert "GPU issue found" in res1.output
 
@@ -66,6 +77,8 @@ async def test_full_user_journey(monkeypatch):
     assert "Fixing GPU" in res2.output
 
     # Step 3: Optimize
-    res3 = await runner.invoke(cli, ["--provider", "inception", "optimize-apps", "--platform", "docker"])
+    res3 = await runner.invoke(
+        cli, ["--provider", "inception", "optimize-apps", "--platform", "docker"]
+    )
     assert res3.exit_code == 0
     assert "Optimizing apps" in res3.output
