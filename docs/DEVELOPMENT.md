@@ -421,3 +421,20 @@ All tests passed with Mercury provider:
 ---
 
 *This document is maintained by AI agents working on SOS Agent. Keep it updated!*
+
+### Phase 6: TUI Implementation (Cyberpunk Edition)
+**Date**: 2025-05-15 (Current)
+**Features**:
+- Textual-based TUI with "AntiX" style grid menu.
+- Persistent Session Storage (JSON).
+- Chat interface integration.
+- Fixer framework with Dry-Run support.
+
+**Architecture**:
+- `src/tui/` contains all UI logic.
+- `src/session/` handles persistence.
+- `src/tools/fixers/` implements modular fixers.
+
+**Lessons Learned**:
+- **AsyncClick vs Textual**: Mixing async click commands with Textual's event loop requires care. Textual runs its own loop.
+- **Sudo in TUI**: Running sudo commands inside TUI is complex. We opted for checking root status and advising user to restart with sudo if needed, to preserve UI integrity.

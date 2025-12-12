@@ -27,10 +27,11 @@ SOS Agent je inteligentní nástroj pro záchranu systému, který využívá n�
   - Nouzový režim pro urgentní situace
   - Automatická doporučení zálohování
 
-- 📊 **Interaktivní Rozhraní**
-  - Krásné CLI s Rich formátováním
-  - Menu-driven navigace
-  - Real-time streaming odpovědi
+- 📊 **Interaktivní TUI (Textové Rozhraní)**
+  - Cyberpunk vizuální styl
+  - Perzistentní Chat s kontextem
+  - Systém Fixerů s Dry-Run kontrolou
+  - Real-time Dashboardy
 
 ## 🚀 Rychlý Start
 
@@ -77,15 +78,31 @@ sos diagnose --category hardware
 ### Dostupné Příkazy
 
 ```bash
-sos diagnose --category <typ>  # Spustit diagnostiku
-sos fix                        # Interaktivní režim oprav
+sos menu                       # 🖥️ Spustit Interaktivní TUI (Doporučeno)
+sos diagnose --category <typ>  # Spustit diagnostiku (CLI)
+sos diagnose --issue "problem" # Diagnostika konkrétního problému
+sos fix                        # Interaktivní režim oprav (CLI)
 sos emergency                  # Nouzová fallback diagnostika
 sos monitor                    # Real-time monitoring systému
 sos check-boot                 # Boot/GRUB diagnostika
 sos optimize-apps              # Vyčistit & optimalizovat aplikace
-sos menu                       # Interaktivní menu
 sos setup                      # Nakonfigurovat API klíče
 ```
+
+### 🖥️ Interaktivní TUI
+
+Spusťte plné rozhraní pomocí:
+
+```bash
+sos menu
+```
+
+Funkce:
+- **Mřížkové menu**: Rychlá navigace (klávesy 0-9).
+- **Chat**: Perzistentní AI chat s kontextem systému.
+- **Fixery**: Průvodce opravami s podporou Dry-Run (nanečisto).
+- **Monitor**: Dashboard v reálném čase.
+- **Cyberpunk Vzhled**: Vysoký kontrast pro viditelnost v nouzi.
 
 ### Kategorie Diagnostiky
 

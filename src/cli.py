@@ -17,6 +17,7 @@ from .agent.client import SOSAgentClient
 from .agent.config import SOSConfig, load_config
 from .agent.permissions import safe_permission_handler, CRITICAL_SERVICES
 from .tools.log_analyzer import analyze_system_logs
+from .session.store import FileSessionStore
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -144,14 +145,20 @@ async def cli(
     default="all",
     help="Diagnostic category",
 )
+@click.option("--issue", help="Describe the specific issue you are facing")
 @click.pass_context
-async def diagnose(ctx: click.Context, category: str) -> None:
+async def diagnose(ctx: click.Context, category: str, issue: Optional[str]) -> None:
     """
     🔍 Run comprehensive system diagnostics.
 
     Analyzes logs, system health, and identifies issues.
     """
     client: SOSAgentClient = ctx.obj["client"]
+
+    if issue:
+        store = FileSessionStore()
+        await store.save_issue(issue)
+        console.print(f"[green]Issue saved to session: {issue}[/green]")
 
     console.print(Panel(f"[bold cyan]Running {category} diagnostics...[/bold cyan]"))
 
@@ -285,6 +292,9 @@ System Load:
     # STEP 5: Build prompt with ACTUAL DATA
     task = f"""
 Analyze the REAL collected data and return a concise one-page summary (max ~25 lines).
+
+User Issue Description:
+{issue if issue else "No specific issue provided."}
 
 System: 
 {system_info.strip()}
@@ -514,41 +524,11 @@ Provide a brief status summary.
 @click.pass_context
 async def menu(ctx: click.Context) -> None:
     """
-    📋 Interactive menu - choose rescue operations.
-
-    Displays available categories and actions.
+    📋 Launch Interactive TUI (Text User Interface).
     """
-    console.print(Panel("[bold cyan]🆘 SOS Agent - Main Menu[/bold cyan]"))
+    from .tui.app import start_tui
 
-    table = Table(show_header=True, header_style="bold magenta")
-    table.add_column("Category", style="cyan")
-    table.add_column("Description")
-    table.add_column("Command")
-
-    table.add_row(
-        "System Diagnostics",
-        "Analyze logs, check health, identify issues",
-        "sos diagnose",
-    )
-    table.add_row("Fix Issues", "Repair detected problems", "sos fix <category>")
-    table.add_row(
-        "Emergency Recovery", "Aggressive stabilization and cleanup", "sos emergency"
-    )
-    table.add_row("Monitor", "Continuous real-time monitoring", "sos monitor")
-    table.add_row("Boot/GRUB", "Boot system diagnostics and fixes", "sos check-boot")
-    table.add_row(
-        "Applications",
-        "Optimize/clean/fix apps (flatpak, snap, docker)",
-        "sos optimize-apps",
-    )
-    table.add_row("Security Audit", "System security check", "sos security-audit")
-    table.add_row(
-        "Backup Profile", "User profile backup and migration", "sos backup-profile"
-    )
-
-    console.print(table)
-
-    console.print("\n[dim]Run 'sos <command> --help' for more details[/dim]")
+    start_tui()
 
 
 @cli.command()
