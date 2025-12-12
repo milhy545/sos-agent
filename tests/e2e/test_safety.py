@@ -70,12 +70,10 @@ async def test_emergency_whitelist():
         assert result["behavior"] == "allow", f"Failed to whitelist: {cmd}"
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="Bug: safe_permission_handler is not connected to client execution flow")
 async def test_safety_integration_real(monkeypatch):
     """
     Phase 3: Integration Test
     Verify that the permission handler is ACTUALLY called during execution.
-    Currently expected to fail because the integration is missing.
     """
     monkeypatch.setenv("INCEPTION_API_KEY", "test")
 
@@ -88,7 +86,8 @@ async def test_safety_integration_real(monkeypatch):
     monkeypatch.setattr("src.agent.client.InceptionClient.query", fake_query)
 
     # Spy on the handler
-    with patch("src.agent.permissions.safe_permission_handler", side_effect=safe_permission_handler) as mock_handler:
+    # Note: We must patch it where it is used (src.cli) because it was imported with 'from'
+    with patch("src.cli.safe_permission_handler", side_effect=safe_permission_handler) as mock_handler:
         runner = AsyncCliRunner()
         await runner.invoke(cli, ["--provider", "inception", "fix", "services"])
 

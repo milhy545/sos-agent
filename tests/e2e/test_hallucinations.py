@@ -53,6 +53,7 @@ async def test_clean_system_empty_logs(monkeypatch):
 
     assert "Hardware errors: 0" in captured_prompt
     assert "Service errors: 0" in captured_prompt
+    assert "✅ No error level issues found" in captured_prompt
 
 @pytest.mark.asyncio
 async def test_os_context_debian(monkeypatch):
