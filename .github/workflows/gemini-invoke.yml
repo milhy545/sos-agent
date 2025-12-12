@@ -40,6 +40,11 @@ jobs:
       - name: 'Checkout repository'
         uses: 'actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8' # ratchet:actions/checkout@v5
 
+      - name: 'Setup Gemini Configuration'
+        run: |
+          mkdir -p .gemini/commands
+          cp .github/commands/*.toml .gemini/commands/
+
       - name: 'Run Gemini CLI'
         id: 'run_gemini'
         uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude
