@@ -28,7 +28,6 @@ jobs:
       TITLE: '${{ github.event.pull_request.title || github.event.issue.title }}'
       DESCRIPTION: '${{ github.event.pull_request.body || github.event.issue.body }}'
       EVENT_NAME: '${{ github.event_name }}'
-      GITHUB_TOKEN: '${{ steps.mint_identity_token.outputs.token || secrets.GITHUB_TOKEN || github.token }}'
       IS_PULL_REQUEST: '${{ !!github.event.pull_request }}'
       ISSUE_NUMBER: '${{ github.event.pull_request.number || github.event.issue.number }}'
       REPOSITORY: '${{ github.repository }}'
@@ -60,6 +59,8 @@ jobs:
       - name: 'Run Gemini CLI'
         id: 'run_gemini'
         uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude
+        env:
+          GITHUB_TOKEN: '${{ steps.mint_identity_token.outputs.token || secrets.GITHUB_TOKEN || github.token }}'
         with:
           gcp_location: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
           gcp_project_id: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
