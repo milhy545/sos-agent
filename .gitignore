@@ -86,6 +86,10 @@ agentapi
 claude_code_sdk/
 src/claude_cli_auth/
 
+# gemini-cli settings
 .gemini/
+
+# GitHub App credentials
 gha-creds-*.json
+
 MERGE_DEPENDABOT_PRS.md
