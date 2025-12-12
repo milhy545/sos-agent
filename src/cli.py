@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
 import asyncclick as click
 from rich.console import Console
 from rich.panel import Panel
@@ -14,10 +15,14 @@ from rich.table import Table
 
 from .agent.client import SOSAgentClient
 from .agent.config import SOSConfig, load_config
+from .agent.permissions import safe_permission_handler, CRITICAL_SERVICES
 from .tools.log_analyzer import analyze_system_logs
 
 console = Console()
 logger = logging.getLogger(__name__)
+
+# Ensure environment variables are loaded
+load_dotenv()
 
 MAX_LOG_SAMPLES = 10
 
@@ -34,6 +39,48 @@ def setup_logging(verbose: bool = False) -> None:
             logging.FileHandler("logs/sos-agent.log"),
         ],
     )
+
+
+async def _safe_print_stream(stream):
+    """Print stream chunks with safety guardrails."""
+    async for message in stream:
+        text_chunk = ""
+        # Handle various response formats
+        if hasattr(message, "content"):
+            for block in message.content:
+                if hasattr(block, "text"):
+                    text_chunk += block.text
+        elif isinstance(message, dict) and "content" in message:
+            for block in message["content"]:
+                if block.get("type") == "text":
+                    text_chunk += block["text"]
+        elif isinstance(message, str):
+            text_chunk = message
+
+        if not text_chunk:
+            continue
+
+        # Guardrail logic: Check for critical service stop/disable
+        for service in CRITICAL_SERVICES:
+            # We check for the dangerous pattern in the chunk.
+            # Note: This is a best-effort check for streaming text.
+            patterns = [f"stop {service}", f"disable {service}"]
+            for pattern in patterns:
+                if pattern in text_chunk:
+                    # Simulate a Bash command check
+                    full_cmd = f"systemctl {pattern}"
+                    # Call handler (assuming empty context is safe for now, or we could pass emergency_mode if available)
+                    # For now passing {} context.
+                    res = await safe_permission_handler(
+                        "Bash", {"command": full_cmd}, {}
+                    )
+                    if res["behavior"] == "deny":
+                        console.print(
+                            f"\n[bold red]🚫 SAFETY INTERCEPT: {res['reason']}[/bold red]"
+                        )
+                        text_chunk = text_chunk.replace(pattern, "[BLOCKED]")
+
+        console.print(text_chunk, end="")
 
 
 @click.group()
@@ -251,6 +298,9 @@ Log summary (last 24h, deduped):
 - Service errors: {len(log_data['service_errors'])} (GUI/display: {len(gui_errors)})
 - Security warnings: {len(log_data['security_warnings'])}
 
+Analyzer Recommendations (automated pre-analysis):
+{chr(10).join(f"- {r}" for r in log_data['recommendations'])}
+
 Sample logs (showed to you):
 GUI/Display (up to {MAX_LOG_SAMPLES}):
 {_format_entries(gui_errors)}
@@ -281,10 +331,7 @@ Rules:
 """
 
     try:
-        buffer = ""
-        async for chunk in client.execute_rescue_task(task):
-            buffer += chunk
-            console.print(chunk, end="")
+        await _safe_print_stream(client.execute_rescue_task(task))
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Diagnostics interrupted by user[/yellow]")
@@ -335,15 +382,7 @@ Remember:
 """
 
     try:
-        async for message in client.execute_rescue_task(task):
-            if hasattr(message, "content"):
-                for block in message.content:
-                    if hasattr(block, "text"):
-                        console.print(block.text)
-            elif isinstance(message, dict) and "content" in message:
-                for block in message["content"]:
-                    if block.get("type") == "text":
-                        console.print(block["text"])
+        await _safe_print_stream(client.execute_rescue_task(task))
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Fix operation interrupted by user[/yellow]")
@@ -415,15 +454,7 @@ CRITICAL: Never stop sshd, NetworkManager, ollama, or tailscaled.
 """
 
     try:
-        async for message in client.execute_rescue_task(task):
-            if hasattr(message, "content"):
-                for block in message.content:
-                    if hasattr(block, "text"):
-                        console.print(block.text)
-            elif isinstance(message, dict) and "content" in message:
-                for block in message["content"]:
-                    if block.get("type") == "text":
-                        console.print(block["text"])
+        await _safe_print_stream(client.execute_rescue_task(task))
 
         console.print(
             Panel(
@@ -471,15 +502,7 @@ Provide a brief status summary.
 
             console.print(f"\n[dim]--- {asyncio.get_event_loop().time()} ---[/dim]")
 
-            async for message in client.execute_rescue_task(task):
-                if hasattr(message, "content"):
-                    for block in message.content:
-                        if hasattr(block, "text"):
-                            console.print(block.text)
-                elif isinstance(message, dict) and "content" in message:
-                    for block in message["content"]:
-                        if block.get("type") == "text":
-                            console.print(block["text"])
+            await _safe_print_stream(client.execute_rescue_task(task))
 
             await asyncio.sleep(interval)
 
@@ -553,15 +576,7 @@ Provide recommendations for any issues found.
 """
 
     try:
-        async for message in client.execute_rescue_task(task):
-            if hasattr(message, "content"):
-                for block in message.content:
-                    if hasattr(block, "text"):
-                        console.print(block.text)
-            elif isinstance(message, dict) and "content" in message:
-                for block in message["content"]:
-                    if block.get("type") == "text":
-                        console.print(block["text"])
+        await _safe_print_stream(client.execute_rescue_task(task))
 
     except Exception as e:
         console.print(f"[red]Error checking boot: {e}[/red]")
@@ -603,15 +618,7 @@ Platforms to check: {platform}
 """
 
     try:
-        async for message in client.execute_rescue_task(task):
-            if hasattr(message, "content"):
-                for block in message.content:
-                    if hasattr(block, "text"):
-                        console.print(block.text)
-            elif isinstance(message, dict) and "content" in message:
-                for block in message["content"]:
-                    if block.get("type") == "text":
-                        console.print(block["text"])
+        await _safe_print_stream(client.execute_rescue_task(task))
 
     except Exception as e:
         console.print(f"[red]Error optimizing apps: {e}[/red]")

@@ -1,22 +1,23 @@
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import patch, AsyncMock
 from src.tools.log_analyzer import analyze_system_logs
+
 
 @pytest.mark.asyncio
 async def test_analyze_system_logs_success():
     """Test successful log analysis."""
-    with patch("asyncio.create_subprocess_shell") as mock_shell:
+    with patch("asyncio.create_subprocess_exec") as mock_shell:
         process_all = AsyncMock()
         process_all.communicate.return_value = (
             b'{"MESSAGE": "Test error", "_SYSTEMD_UNIT": "test.service", "PRIORITY": "3", "__REALTIME_TIMESTAMP": "1630000000000"}\n',
-            b""
+            b"",
         )
         process_all.returncode = 0
 
         process_kernel = AsyncMock()
         process_kernel.communicate.return_value = (
             b'{"MESSAGE": "Kernel error", "_SYSTEMD_UNIT": "kernel", "PRIORITY": "3", "__REALTIME_TIMESTAMP": "1630000000000"}\n',
-            b""
+            b"",
         )
         process_kernel.returncode = 0
 
@@ -28,17 +29,18 @@ async def test_analyze_system_logs_success():
         assert "Test error" in results["service_errors"][0]["message"]
         assert "Kernel error" in results["service_errors"][1]["message"]
 
+
 @pytest.mark.asyncio
 async def test_analyze_system_logs_kernel_failure_silenced():
     """
     Test the BUG where kernel log failure is ignored if system logs succeed.
     """
-    with patch("asyncio.create_subprocess_shell") as mock_shell:
+    with patch("asyncio.create_subprocess_exec") as mock_shell:
         # Setup mock for process_all (SUCCESS)
         process_all = AsyncMock()
         process_all.communicate.return_value = (
             b'{"MESSAGE": "System ok", "PRIORITY": "6"}\n',
-            b""
+            b"",
         )
         process_all.returncode = 0
 
@@ -46,7 +48,7 @@ async def test_analyze_system_logs_kernel_failure_silenced():
         process_kernel = AsyncMock()
         process_kernel.communicate.return_value = (
             b"",
-            b"Permission denied for kernel logs"
+            b"Permission denied for kernel logs",
         )
         process_kernel.returncode = 1
 
@@ -62,16 +64,23 @@ async def test_analyze_system_logs_kernel_failure_silenced():
 
         warning_found = False
         for r in recommendations:
-            if "failed to read" in r.lower() or "permission denied" in r.lower() or "kernel logs" in r.lower():
+            if (
+                "failed to read" in r.lower()
+                or "permission denied" in r.lower()
+                or "kernel logs" in r.lower()
+            ):
                 warning_found = True
                 break
 
-        assert warning_found, f"Should report kernel log retrieval failure. Actual: {recommendations}"
+        assert (
+            warning_found
+        ), f"Should report kernel log retrieval failure. Actual: {recommendations}"
+
 
 @pytest.mark.asyncio
 async def test_analyze_system_logs_all_failure():
     """Test when system logs fail."""
-    with patch("asyncio.create_subprocess_shell") as mock_shell:
+    with patch("asyncio.create_subprocess_exec") as mock_shell:
         process_all = AsyncMock()
         process_all.communicate.return_value = (b"", b"Journalctl failed")
         process_all.returncode = 1
@@ -87,10 +96,11 @@ async def test_analyze_system_logs_all_failure():
         recommendations = results["recommendations"]
         assert any("Failed to read journalctl" in r for r in recommendations)
 
+
 @pytest.mark.asyncio
 async def test_analyze_system_logs_parsing():
     """Test parsing of various log formats."""
-    with patch("asyncio.create_subprocess_shell") as mock_shell:
+    with patch("asyncio.create_subprocess_exec") as mock_shell:
         process_all = AsyncMock()
         output = b"""
         {"MESSAGE": "Hardware error CPU", "_SYSTEMD_UNIT": "", "PRIORITY": "3"}

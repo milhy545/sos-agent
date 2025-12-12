@@ -77,7 +77,7 @@ class OpenAIClient:
                         yield chunk.choices[0].delta.content
             else:
                 # Non-streaming response
-                response = await self.client.chat.completions.create(
+                completion = await self.client.chat.completions.create(
                     model=self.model_name,
                     messages=[
                         {
@@ -90,7 +90,7 @@ class OpenAIClient:
                     max_tokens=4096,
                 )
 
-                yield response.choices[0].message.content
+                yield completion.choices[0].message.content or ""
 
         except Exception as e:
             self.logger.error(f"OpenAI API error: {e}", exc_info=True)

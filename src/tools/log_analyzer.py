@@ -49,24 +49,29 @@ async def analyze_system_logs(
     try:
         # Analyze ALL journalctl logs (system + kernel)
         # CRITICAL: Include kernel logs (-k) for GPU/driver errors!
-        cmd_all = (
-            f"journalctl --since '{time_range} ago' "
-            f"-p {journalctl_severity} --no-pager -o json"
-        )
 
-        cmd_kernel = (
-            f"journalctl -k --since '{time_range} ago' "
-            f"-p {journalctl_severity} --no-pager -o json"
-        )
+        # Use create_subprocess_exec to avoid shell injection
+        args_common = [
+            "--since",
+            f"{time_range} ago",
+            "-p",
+            journalctl_severity,
+            "--no-pager",
+            "-o",
+            "json",
+        ]
 
-        logger.debug(f"Running commands: {cmd_all} && {cmd_kernel}")
+        cmd_all = ["journalctl"] + args_common
+        cmd_kernel = ["journalctl", "-k"] + args_common
+
+        logger.debug(f"Running commands: {' '.join(cmd_all)} && {' '.join(cmd_kernel)}")
 
         # Run BOTH system and kernel logs
-        process_all = await asyncio.create_subprocess_shell(
-            cmd_all, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        process_all = await asyncio.create_subprocess_exec(
+            *cmd_all, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
-        process_kernel = await asyncio.create_subprocess_shell(
-            cmd_kernel, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        process_kernel = await asyncio.create_subprocess_exec(
+            *cmd_kernel, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
 
         stdout_all, stderr_all = await process_all.communicate()

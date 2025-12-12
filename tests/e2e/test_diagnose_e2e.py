@@ -1,4 +1,3 @@
-import asyncio
 import os
 from typing import Dict, Any
 
@@ -39,7 +38,9 @@ async def test_diagnose_stub_provider(monkeypatch):
         }
 
     # Mock sběru logů
-    monkeypatch.setattr("src.tools.log_analyzer.analyze_system_logs", fake_analyze_system_logs)
+    monkeypatch.setattr(
+        "src.tools.log_analyzer.analyze_system_logs", fake_analyze_system_logs
+    )
     monkeypatch.setattr("src.cli.analyze_system_logs", fake_analyze_system_logs)
 
     # Mock asynchronních subprocess výstupů (free/df/uptime/os-release/uname)
@@ -76,7 +77,10 @@ async def test_diagnose_stub_provider(monkeypatch):
     monkeypatch.setattr("src.agent.client.InceptionClient.query", fake_inception_query)
 
     runner = AsyncCliRunner()
-    result = await runner.invoke(cli, ["diagnose", "--category", "services"])
+    # Explicitně vynutit providera 'inception', aby se použil náš mock a ne auto-detekovaný Gemini
+    result = await runner.invoke(
+        cli, ["--provider", "inception", "diagnose", "--category", "services"]
+    )
 
     assert result.exit_code == 0
     assert "service-x.service" in result.output
@@ -94,7 +98,9 @@ async def test_diagnose_mercury_live():
     Spouští se pouze, pokud jsou k dispozici env proměnné.
     """
     runner = AsyncCliRunner()
-    result = await runner.invoke(cli, ["--provider", "inception", "diagnose", "--category", "hardware"])
+    result = await runner.invoke(
+        cli, ["--provider", "inception", "diagnose", "--category", "hardware"]
+    )
 
     # Základní ověření, že volání doběhlo a něco vrátilo
     assert result.exit_code == 0

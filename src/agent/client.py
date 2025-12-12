@@ -40,6 +40,7 @@ class SOSAgentClient:
             self.config.ai_provider = provider
 
         # Initialize AI client based on provider
+        self.client: Any
         if provider == "claude-agentapi":
             self.client = AgentAPIClient(
                 api_url="http://localhost:3284",
