@@ -114,9 +114,10 @@ async def test_cli_menu(runner, mock_client_cls):
 
     runner = AsyncCliRunner()
 
-    result = await runner.invoke(cli, ["menu"])
-    assert result.exit_code == 0
-    assert "Main Menu" in result.output
+    with patch("src.tui.app.start_tui") as mock_start:
+        result = await runner.invoke(cli, ["menu"])
+        assert result.exit_code == 0
+        mock_start.assert_called_once()
 
 
 @pytest.mark.asyncio

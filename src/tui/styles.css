@@ -1,0 +1,126 @@
+/* Cyberpunk Theme for SOS Agent */
+
+Screen {
+    background: #050505;
+    color: #e0e0e0;
+}
+
+/* Common Header */
+Header {
+    background: #000000;
+    color: #00ffff;
+    dock: top;
+    height: 3;
+    content-align: center middle;
+    border-bottom: solid #ff00ff;
+}
+
+/* Footer / Status Bar */
+Footer {
+    background: #101010;
+    color: #ffff00;
+    dock: bottom;
+    height: 1;
+}
+
+/* Main Menu Grid */
+.menu-grid {
+    layout: grid;
+    grid-size: 2;
+    grid-gutter: 1 2;
+    padding: 2;
+    align: center middle;
+}
+
+/* Menu Buttons */
+Button {
+    width: 100%;
+    height: 3;
+    background: #1a1a1a;
+    color: #00ffff;
+    border: solid #00aaaa;
+    text-style: bold;
+}
+
+Button:hover {
+    background: #2a2a2a;
+    border: solid #ff00ff;
+    color: #ff00ff;
+}
+
+Button:focus {
+    background: #2a2a2a;
+    border: solid #ffff00;
+    color: #ffff00;
+}
+
+/* Specific button styles if needed */
+.btn-emergency {
+    color: #ff0000;
+    border: solid #ff0000;
+}
+
+.btn-emergency:hover {
+    background: #330000;
+}
+
+/* Static Panels */
+Panel {
+    background: #0a0a0a;
+    border: heavy #00ffff;
+    padding: 1;
+    margin: 1;
+}
+
+/* Chat Styles */
+.chat-message-user {
+    background: #1a1a1a;
+    color: #00ffff;
+    padding: 1;
+    margin: 1;
+    border-left: solid #00ffff;
+}
+
+.chat-message-ai {
+    background: #151515;
+    color: #ff00ff;
+    padding: 1;
+    margin: 1;
+    border-left: solid #ff00ff;
+}
+
+/* Setup Form */
+.setup-container {
+    padding: 2;
+}
+
+Label {
+    color: #ffff00;
+    margin-top: 1;
+}
+
+Input {
+    background: #1a1a1a;
+    border: solid #00ffff;
+    color: #ffffff;
+}
+
+Input:focus {
+    border: solid #ffff00;
+}
+
+/* Monitor Grid */
+.monitor-grid {
+    layout: grid;
+    grid-size: 3;
+    grid-gutter: 1;
+    padding: 1;
+}
+
+.monitor-panel {
+    background: #111111;
+    border: solid #00ffff;
+    padding: 1;
+    height: 10;
+    align: center middle;
+}

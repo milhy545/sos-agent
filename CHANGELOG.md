@@ -69,6 +69,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-05-15
+
+### ✨ Interactive TUI (Cyberpunk Edition)
+- **Grid Menu**: Fast navigation (0-9 keys).
+- **Persistent Chat**: AI Chat with session history and diagnostic context.
+- **Fixer Framework**: Modular fixer interface with Dry-Run support.
+- **Visuals**: Dark/Cyan/Magenta/Yellow theme.
+- **Commands**: `sos menu` to launch TUI.
+
+### 🐛 Improvements
+- **Session Storage**: JSON-based session persistence in `~/.config/sos-agent/session.json`.
+- **Issue Tracking**: `sos diagnose --issue <text>` saves issue context.
+- **Sudo Guard**: Detects root privileges for fixers.
+
+
 ### Added
 - End-to-end diagnostika: stub e2e test + volitelný live Mercury e2e (podmíněný env).
 - Jednostránkové shrnutí diagnostiky: Top findings s logy, Quick actions vázané na nálezy (GUI/disk/auth), Resources, Security, Next steps; deduplikace logů.
@@ -205,6 +220,21 @@ All diagnostic categories tested successfully:
 ---
 
 ## [Unreleased]
+
+## [0.2.0] - 2025-05-15
+
+### ✨ Interactive TUI (Cyberpunk Edition)
+- **Grid Menu**: Fast navigation (0-9 keys).
+- **Persistent Chat**: AI Chat with session history and diagnostic context.
+- **Fixer Framework**: Modular fixer interface with Dry-Run support.
+- **Visuals**: Dark/Cyan/Magenta/Yellow theme.
+- **Commands**: `sos menu` to launch TUI.
+
+### 🐛 Improvements
+- **Session Storage**: JSON-based session persistence in `~/.config/sos-agent/session.json`.
+- **Issue Tracking**: `sos diagnose --issue <text>` saves issue context.
+- **Sudo Guard**: Detects root privileges for fixers.
+
 
 ### 🚀 Planned Features
 

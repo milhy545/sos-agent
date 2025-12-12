@@ -27,10 +27,11 @@ SOS Agent is an intelligent system rescue tool powered by multiple AI models. It
   - Emergency mode for urgent situations
   - Automatic backup recommendations
 
-- 📊 **Interactive Interface**
-  - Beautiful CLI with Rich formatting
-  - Menu-driven navigation
-  - Real-time streaming responses
+- 📊 **Interactive TUI (Text User Interface)**
+  - Cyberpunk-themed visual interface
+  - Persistent Chat with context
+  - Guided Fixer system with Dry-Run safety
+  - Real-time Dashboards
 
 ## 🚀 Quick Start
 
@@ -77,15 +78,31 @@ sos diagnose --category hardware
 ### Available Commands
 
 ```bash
-sos diagnose --category <type>  # Run diagnostics
-sos fix                         # Interactive fix mode
+sos menu                        # 🖥️ Launch Interactive TUI (Recommended)
+sos diagnose --category <type>  # Run diagnostics (CLI)
+sos diagnose --issue "problem"  # Run diagnostics with specific issue
+sos fix                         # Interactive fix mode (CLI)
 sos emergency                   # Emergency fallback diagnostics
 sos monitor                     # Real-time system monitoring
 sos check-boot                  # Boot/GRUB diagnostics
 sos optimize-apps               # Clean & optimize applications
-sos menu                        # Interactive menu
 sos setup                       # Configure API keys
 ```
+
+### 🖥️ Interactive TUI
+
+Launch the full interface with:
+
+```bash
+sos menu
+```
+
+Features:
+- **Grid Menu**: Fast navigation (0-9 keys).
+- **Chat**: Persistent AI chat with system context.
+- **Fixers**: Guided fix interface with Dry-Run support.
+- **Monitor**: Real-time dashboards.
+- **Cyberpunk Theme**: High contrast for emergency visibility.
 
 ### Diagnostic Categories
 
