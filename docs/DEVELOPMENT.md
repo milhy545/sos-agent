@@ -62,7 +62,20 @@ kernel = await get_kernel_version()  # uname -a
 - Jednorázově přepni `sos` na běh z repa: `./scripts/use-local-sos.sh`
 - Od té chvíle každý `sos ...` používá aktuální kód z `sos-agent` (změny se projeví hned).
 
-## 🚨 CRITICAL LESSONS LEARNED
+# Formatting & Linting
+poetry run black src/
+poetry run ruff check src/
+
+## Git Hooks (Recommended)
+To ensure code is formatted before every commit, install pre-commit hooks:
+
+```bash
+pip install pre-commit  # or via poetry
+pre-commit install
+```
+This will automatically run `black` on staged files.
+
+## Critical "Golden Rules" (from DEVELOPMENT.md)
 
 ### **Issue #3: AI Hallucination - No Real Data Collection** ⚠️ **FIXED**
 **Date**: 2024-12-04
