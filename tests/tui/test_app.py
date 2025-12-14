@@ -12,7 +12,7 @@ from src.tui.screens.logs import LogsScreen
 @pytest.mark.asyncio
 async def test_app_startup():
     """Test that the app starts and loads the main menu."""
-    app = SOSApp()
+    app = SOSApp(init_client=False)
     async with app.run_test() as pilot:
         # Check if MainMenu is active
         assert isinstance(app.screen, MainMenu)
@@ -29,7 +29,7 @@ async def test_app_startup():
 @pytest.mark.asyncio
 async def test_menu_to_fix_and_back():
     """Number bindings open fixers screen then return."""
-    app = SOSApp()
+    app = SOSApp(init_client=False)
     async with app.run_test() as pilot:
         await pilot.press("2")
         assert isinstance(app.screen, FixScreen)
@@ -40,7 +40,7 @@ async def test_menu_to_fix_and_back():
 @pytest.mark.asyncio
 async def test_menu_to_chat():
     """Chat screen loads without crashing and respects bindings."""
-    app = SOSApp()
+    app = SOSApp(init_client=False)
     with patch("src.tui.screens.chat.FileSessionStore") as mock_store_cls:
         mock_store = mock_store_cls.return_value
         mock_store.get_chat_history = AsyncMock(return_value=[])
@@ -59,7 +59,7 @@ async def test_menu_to_chat():
 @pytest.mark.asyncio
 async def test_menu_to_logs():
     """Logs screen is reachable via key binding."""
-    app = SOSApp()
+    app = SOSApp(init_client=False)
     async with app.run_test() as pilot:
         await pilot.press("6")
         assert isinstance(app.screen, LogsScreen)
