@@ -55,6 +55,11 @@ jobs:
             envsubst < "$file" > ".gemini/commands/$(basename "$file")"
           done
 
+      - name: 'Install Gemini CLI'
+        run: |
+          npm install -g @google/gemini-cli
+          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
+
       - name: 'Run Gemini pull request review'
         uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude
         id: 'gemini_pr_review'
