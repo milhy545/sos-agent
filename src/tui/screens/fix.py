@@ -12,6 +12,7 @@ from textual.widgets import (
 )
 from textual.containers import Horizontal, Vertical
 from src.tools.fixers import get_all_fixers
+from src.tools.fixers.base import Fixer
 from src.agent.privilege import is_root
 
 
@@ -45,7 +46,7 @@ class FixScreen(Screen):
 
     def on_mount(self) -> None:
         """Load fixers."""
-        self.fixers = get_all_fixers()
+        self.fixers: list[Fixer] = get_all_fixers()
         list_view = self.query_one("#fixer-list", ListView)
 
         for fixer in self.fixers:
@@ -53,7 +54,8 @@ class FixScreen(Screen):
                 ListItem(Label(f"{fixer.name} ({fixer.category})"), id=fixer.id)
             )
 
-        self.selected_fixer = None
+        self.selected_fixer: Fixer | None = None
+        self.confirm_execute = False
 
     async def on_list_view_selected(self, event: ListView.Selected) -> None:
         """Handle fixer selection."""
@@ -74,6 +76,7 @@ class FixScreen(Screen):
 
             # Reset buttons
             self.query_one("#btn-execute").disabled = True
+            self.confirm_execute = False
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle buttons."""
@@ -102,8 +105,15 @@ class FixScreen(Screen):
                 "\n[bold]Review the plan above. Click 'EXECUTE FIX' to apply.[/bold]"
             )
             self.query_one("#btn-execute").disabled = False
+            self.confirm_execute = False
 
         elif btn_id == "btn-execute":
+            if not self.confirm_execute:
+                log.write(
+                    "\n[bold yellow]Press EXECUTE FIX again to confirm.[/bold yellow]"
+                )
+                self.confirm_execute = True
+                return
             if self.selected_fixer.requires_root and not is_root():
                 log.write(
                     "\n[bold red]ERROR: This fix requires ROOT privileges.[/bold red]"
@@ -118,6 +128,7 @@ class FixScreen(Screen):
                     log.write(f"[green]✓ {res}[/green]")
                 log.write("[bold green]Fix Applied Successfully![/bold green]")
                 self.query_one("#btn-execute").disabled = True
+                self.confirm_execute = False
             except Exception as e:
                 log.write(f"[bold red]Fix Failed:[/bold red] {e}")
 

@@ -1,3 +1,4 @@
+from textual import events
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Header, Footer, Input, RichLog, Static
@@ -18,11 +19,15 @@ class ChatScreen(Screen):
         super().__init__(name, id, classes)
         self.store = FileSessionStore()
         # Client will be accessed from app or initialized lazily if app doesn't have it
-        self.client = None
+        self.client: SOSAgentClient | None = None
+        self.prompt_history: list[str] = []
+        self.prompt_history_index: int | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield Static("SOS Chat Assistant", classes="title")
+        client_type = getattr(getattr(self.app, "client", None), "client_type", None)
+        suffix = f" ({client_type})" if client_type else ""
+        yield Static(f"SOS Chat Assistant{suffix}", classes="title")
         yield RichLog(id="chat-log", markup=True, wrap=True)
         yield Input(placeholder="Type your message...", id="chat-input")
         yield Footer()
@@ -46,6 +51,12 @@ class ChatScreen(Screen):
             config = await load_config(None)
             self.client = SOSAgentClient(config)
 
+    async def on_show(self) -> None:
+        # Refresh title with current client type
+        client_type = getattr(getattr(self.app, "client", None), "client_type", None)
+        suffix = f" ({client_type})" if client_type else ""
+        self.query_one(Static).update(f"SOS Chat Assistant{suffix}")
+
     def action_back(self) -> None:
         self.app.pop_screen()
 
@@ -54,6 +65,10 @@ class ChatScreen(Screen):
         message = event.value
         if not message:
             return
+
+        if not self.prompt_history or self.prompt_history[-1] != message:
+            self.prompt_history.append(message)
+        self.prompt_history_index = None
 
         input_widget = self.query_one(Input)
         input_widget.value = ""
@@ -119,3 +134,32 @@ class ChatScreen(Screen):
 
         except Exception as e:
             log.write(f"[bold red]Error: {e}[/bold red]")
+
+    def on_key(self, event: events.Key) -> None:
+        """Enable ↑/↓ prompt history when the input is focused."""
+        focused = getattr(self.app, "focused", None)
+        input_widget = self.query_one("#chat-input", Input)
+        if focused is not input_widget:
+            return
+        if not self.prompt_history:
+            return
+
+        if event.key == "up":
+            if self.prompt_history_index is None:
+                self.prompt_history_index = len(self.prompt_history) - 1
+            else:
+                self.prompt_history_index = max(0, self.prompt_history_index - 1)
+            input_widget.value = self.prompt_history[self.prompt_history_index]
+            event.prevent_default()
+            event.stop()
+        elif event.key == "down":
+            if self.prompt_history_index is None:
+                return
+            if self.prompt_history_index >= len(self.prompt_history) - 1:
+                self.prompt_history_index = None
+                input_widget.value = ""
+            else:
+                self.prompt_history_index += 1
+                input_widget.value = self.prompt_history[self.prompt_history_index]
+            event.prevent_default()
+            event.stop()

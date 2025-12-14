@@ -78,6 +78,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Visuals**: Dark/Cyan/Magenta/Yellow theme.
 - **Commands**: `sos menu` to launch TUI.
 
+### ✨ CLI & TUI Upgrades (antiX-cli-cc flavor)
+- `sos diagnose --issue` ukládá problém a vkládá ho do promptu.
+- Nový příkaz `sos chat` (perzistentní historie, kontext z posledního `--issue`, fallback při chybějícím klíči).
+- `sos fix` používá vestavěné fixery (DNS/Services/Disk) s Dry-Run + potvrzením; `--ai` volitelně vynutí AI plán.
+- TUI menu rozšířeno o Diagnostics Hub, Logs viewer a neon status bar s posledním problémem; fixery mají double-confirm.
+- Monitor TUI přidal start/stop kontrolu smyčky; logy/diagnostika přístupné přímo z TUI.
+
 ### 🐛 Improvements
 - **Session Storage**: JSON-based session persistence in `~/.config/sos-agent/session.json`.
 - **Issue Tracking**: `sos diagnose --issue <text>` saves issue context.

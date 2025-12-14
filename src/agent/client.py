@@ -128,28 +128,111 @@ class SOSAgentClient:
         )
         self.logger.debug(f"Context: {ctx}")
 
-        try:
+        async def _query() -> AsyncIterator[str]:
             if self.client_type == "agentapi":
-                # AgentAPI workflow
                 await self.client.start_server()
-
-                async for response_chunk in self.client.query_stream(full_task):
-                    yield response_chunk
-
-                await self.client.stop_server()
-
+                try:
+                    async for response_chunk in self.client.query_stream(full_task):
+                        yield response_chunk
+                finally:
+                    await self.client.stop_server()
             elif self.client_type in ["gemini", "openai", "inception"]:
-                # Direct API workflow (Gemini/OpenAI/Inception)
                 async for response_chunk in self.client.query(
                     full_task, context=ctx, stream=stream
                 ):
                     yield response_chunk
 
+        try:
+            async for chunk in _query():
+                yield chunk
+            return
         except Exception as e:
             self.logger.critical(
                 f"{self.client_type.upper()} error: {e}", exc_info=True
             )
-            yield f"❌ ERROR: {str(e)}\\n\\nℹ️  Check your {self.client_type.upper()} configuration"
+
+            fallback = self._get_fallback_provider(error=e)
+            if fallback:
+                self.logger.warning(
+                    "Provider failover triggered",
+                    extra={
+                        "from": self.client_type,
+                        "to": fallback,
+                        "reason": str(e)[:200],
+                    },
+                )
+                try:
+                    self._switch_provider(fallback)
+                    async for chunk in _query():
+                        yield chunk
+                    return
+                except Exception as e2:
+                    self.logger.critical(
+                        f"Failover provider {fallback} error: {e2}", exc_info=True
+                    )
+
+            yield (
+                f"❌ ERROR: {str(e)}\n\nℹ️  Check your {self.client_type.upper()} configuration"
+            )
+
+    def _switch_provider(self, provider: str) -> None:
+        """Reinitialize underlying provider client in-place."""
+        self.config.ai_provider = provider
+        if provider == "claude-agentapi":
+            self.client = AgentAPIClient(
+                api_url="http://localhost:3284",
+                claude_path="/usr/bin/claude",
+            )
+            self.client_type = "agentapi"
+            return
+        if provider == "gemini":
+            self.client = GeminiClient(
+                api_key=self.config.gemini_api_key,
+                model=self.config.gemini_model,
+            )
+            self.client_type = "gemini"
+            return
+        if provider == "openai":
+            self.client = OpenAIClient(
+                api_key=self.config.openai_api_key,
+                model=self.config.openai_model,
+            )
+            self.client_type = "openai"
+            return
+        if provider == "inception":
+            self.client = InceptionClient(
+                api_key=self.config.inception_api_key,
+                model=self.config.inception_model,
+                language=self.config.ai_language,
+            )
+            self.client_type = "inception"
+            return
+        raise ValueError(f"Unknown AI provider: {provider}")
+
+    def _get_fallback_provider(self, error: Exception) -> Optional[str]:
+        """Select a fallback provider for quota/rate issues."""
+        msg = str(error).lower()
+        is_quota = any(
+            token in msg
+            for token in (
+                "quota",
+                "resource_exhausted",
+                "rate limit",
+                "429",
+                "too many requests",
+            )
+        )
+        if not is_quota:
+            return None
+
+        if self.client_type == "gemini":
+            if self.config.inception_api_key:
+                return "inception"
+            if self.config.openai_api_key:
+                return "openai"
+            if self.config.anthropic_api_key:
+                return "claude-agentapi"
+        return None
 
     def _build_task_with_context(self, task: str, context: Dict[str, Any]) -> str:
         """
@@ -162,7 +245,15 @@ class SOSAgentClient:
         Returns:
             Task with context
         """
+        language = (self.config.ai_language or "en").lower()
+        language_instruction = (
+            "Language: Czech (cs). Respond in Czech.\n"
+            if language.startswith("cs")
+            else "Language: English (en). Respond in English.\n"
+        )
+
         context_str = f"""
+{language_instruction}
 System Context:
 - Emergency Mode: {context.get('emergency_mode', False)}
 - Shell: {context.get('shell', 'zsh')}

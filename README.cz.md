@@ -81,6 +81,7 @@ sos diagnose --category hardware
 sos menu                       # 🖥️ Spustit Interaktivní TUI (Doporučeno)
 sos diagnose --category <typ>  # Spustit diagnostiku (CLI)
 sos diagnose --issue "problem" # Diagnostika konkrétního problému
+sos chat --message "ahoj"      # Chat s agentem (uchovává kontext session)
 sos fix                        # Interaktivní režim oprav (CLI)
 sos emergency                  # Nouzová fallback diagnostika
 sos monitor                    # Real-time monitoring systému
@@ -99,9 +100,12 @@ sos menu
 
 Funkce:
 - **Mřížkové menu**: Rychlá navigace (klávesy 0-9).
-- **Chat**: Perzistentní AI chat s kontextem systému.
-- **Fixery**: Průvodce opravami s podporou Dry-Run (nanečisto).
-- **Monitor**: Dashboard v reálném čase.
+- **antiX-cli-cc nádech**: Stavový pruh s uloženým problémem + neon mřížka.
+- **Chat**: Perzistentní AI chat s kontextem systému/problému.
+- **Fixery**: Průvodce opravami s Dry-Run + dvojitým potvrzením.
+- **Diagnostika Hub**: Náhled posledního `--issue` + tipy pro CLI.
+- **Logy**: Zobrazení posledních logů agenta přímo v TUI.
+- **Monitor**: Spuštění/zastavení dashboardu v reálném čase.
 - **Cyberpunk Vzhled**: Vysoký kontrast pro viditelnost v nouzi.
 
 ### Kategorie Diagnostiky

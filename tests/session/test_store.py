@@ -2,13 +2,14 @@
 
 import json
 import pytest
-from pathlib import Path
 from src.session.store import FileSessionStore
+
 
 @pytest.fixture
 def session_file(tmp_path):
     """Create a temporary session file path."""
     return tmp_path / "session.json"
+
 
 @pytest.mark.asyncio
 async def test_file_session_store_init(session_file):
@@ -18,6 +19,7 @@ async def test_file_session_store_init(session_file):
     # Should create empty default
     data = store._load()
     assert data == {"chat_history": [], "current_issue": None}
+
 
 @pytest.mark.asyncio
 async def test_save_and_get_issue(session_file):
@@ -37,6 +39,7 @@ async def test_save_and_get_issue(session_file):
     store2 = FileSessionStore(path=session_file)
     assert await store2.get_issue() == "System is slow"
 
+
 @pytest.mark.asyncio
 async def test_chat_history(session_file):
     """Test chat history persistence."""
@@ -50,6 +53,7 @@ async def test_chat_history(session_file):
     assert history[0]["content"] == "Hello"
     assert history[1]["role"] == "assistant"
     assert history[1]["content"] == "Hi there"
+
 
 @pytest.mark.asyncio
 async def test_clear_session(session_file):

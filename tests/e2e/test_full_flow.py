@@ -78,7 +78,15 @@ async def test_full_user_journey(monkeypatch):
 
     # Step 3: Optimize
     res3 = await runner.invoke(
-        cli, ["--provider", "inception", "optimize-apps", "--platform", "docker"]
+        cli,
+        [
+            "--provider",
+            "inception",
+            "optimize-apps",
+            "--platform",
+            "docker",
+            "--ai",
+        ],
     )
     assert res3.exit_code == 0
     assert "Optimizing apps" in res3.output

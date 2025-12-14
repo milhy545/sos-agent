@@ -1,6 +1,7 @@
 import pytest
 from src.tools.fixers import get_all_fixers
 
+
 @pytest.mark.asyncio
 async def test_all_fixers_dry_run_safety(mocker):
     """Ensure dry_run never calls subprocess (executes commands)."""
@@ -12,10 +13,11 @@ async def test_all_fixers_dry_run_safety(mocker):
     for fixer in fixers:
         print(f"Testing dry_run for {fixer.name}")
         actions = await fixer.apply(dry_run=True)
-        assert len(actions) > 0 # Should propose something
+        assert len(actions) > 0  # Should propose something
 
     # Assert subprocess was NEVER called
     mock_sub.assert_not_called()
+
 
 @pytest.mark.asyncio
 async def test_fixer_root_enforcement(mocker):
@@ -32,6 +34,7 @@ async def test_fixer_root_enforcement(mocker):
             with pytest.raises(PermissionError):
                 await fixer.apply(dry_run=False)
 
+
 @pytest.mark.asyncio
 async def test_services_fixer_logic(mocker):
     """Test ServicesFixer restarts critical services safely."""
@@ -39,11 +42,14 @@ async def test_services_fixer_logic(mocker):
     mocker.patch("src.tools.fixers.services.is_root", return_value=True)
 
     # Mock subprocess
-    mock_sub = mocker.patch("asyncio.create_subprocess_shell", new_callable=mocker.AsyncMock)
+    mock_sub = mocker.patch(
+        "asyncio.create_subprocess_shell", new_callable=mocker.AsyncMock
+    )
     mock_sub.return_value.returncode = 0
     mock_sub.return_value.communicate.return_value = (b"", b"")
 
     from src.tools.fixers.services import ServicesFixer
+
     fixer = ServicesFixer()
 
     actions = await fixer.apply(dry_run=False)
@@ -60,15 +66,19 @@ async def test_services_fixer_logic(mocker):
     for cmd in calls:
         assert "stop" not in cmd, f"Dangerous command detected: {cmd}"
 
+
 @pytest.mark.asyncio
 async def test_disk_fixer_logic(mocker):
     """Test DiskCleanupFixer commands."""
     mocker.patch("src.tools.fixers.disk.is_root", return_value=True)
-    mock_sub = mocker.patch("asyncio.create_subprocess_shell", new_callable=mocker.AsyncMock)
+    mock_sub = mocker.patch(
+        "asyncio.create_subprocess_shell", new_callable=mocker.AsyncMock
+    )
     mock_sub.return_value.returncode = 0
     mock_sub.return_value.communicate.return_value = (b"", b"")
 
     from src.tools.fixers.disk import DiskCleanupFixer
+
     fixer = DiskCleanupFixer()
 
     await fixer.apply(dry_run=False)
@@ -81,17 +91,21 @@ async def test_disk_fixer_logic(mocker):
     for cmd in calls:
         assert "rm -rf /" not in cmd
 
+
 @pytest.mark.asyncio
 async def test_dns_fixer_safety(mocker):
     """Ensure DNS fixer backs up configuration."""
     mocker.patch("src.tools.fixers.network.is_root", return_value=True)
-    mock_sub = mocker.patch("asyncio.create_subprocess_shell", new_callable=mocker.AsyncMock)
+    mock_sub = mocker.patch(
+        "asyncio.create_subprocess_shell", new_callable=mocker.AsyncMock
+    )
     mock_sub.return_value.returncode = 0
     mock_sub.return_value.communicate.return_value = (b"", b"")
     # Mock open() to avoid writing to real file
     mocker.patch("builtins.open", mocker.mock_open())
 
     from src.tools.fixers.network import DNSFixer
+
     fixer = DNSFixer()
 
     await fixer.apply(dry_run=False)

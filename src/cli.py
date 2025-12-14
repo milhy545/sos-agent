@@ -4,6 +4,7 @@ import asyncio
 import logging
 import subprocess
 import sys
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -18,6 +19,8 @@ from .agent.config import SOSConfig, load_config
 from .agent.permissions import safe_permission_handler, CRITICAL_SERVICES
 from .tools.log_analyzer import analyze_system_logs
 from .session.store import FileSessionStore
+from .tools.fixers import get_all_fixers
+from .agent.privilege import is_root
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -26,6 +29,43 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 MAX_LOG_SAMPLES = 10
+
+
+def _has_provider_key(config: SOSConfig) -> bool:
+    """Check if a usable API key is present for the configured provider."""
+    provider = config.ai_provider
+    if provider in ("auto", "gemini"):
+        if config.gemini_api_key:
+            return True
+    if provider in ("auto", "openai"):
+        if config.openai_api_key:
+            return True
+    if provider in ("auto", "inception"):
+        if config.inception_api_key:
+            return True
+    if provider in ("auto", "claude-agentapi"):
+        if config.anthropic_api_key:
+            return True
+    return False
+
+
+async def _run_shell(command: str) -> tuple[int, str, str]:
+    """Run a shell command and capture output."""
+    proc = await asyncio.create_subprocess_shell(
+        command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await proc.communicate()
+    return (
+        proc.returncode or 0,
+        stdout.decode(errors="replace"),
+        stderr.decode(errors="replace"),
+    )
+
+
+def _t(config: SOSConfig, cs: str, en: str) -> str:
+    return cs if (config.ai_language or "en").lower().startswith("cs") else en
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -154,11 +194,14 @@ async def diagnose(ctx: click.Context, category: str, issue: Optional[str]) -> N
     Analyzes logs, system health, and identifies issues.
     """
     client: SOSAgentClient = ctx.obj["client"]
+    store = FileSessionStore()
 
     if issue:
-        store = FileSessionStore()
         await store.save_issue(issue)
         console.print(f"[green]Issue saved to session: {issue}[/green]")
+    else:
+        # Load previously saved issue to keep context across runs
+        issue = await store.get_issue()
 
     console.print(Panel(f"[bold cyan]Running {category} diagnostics...[/bold cyan]"))
 
@@ -360,8 +403,22 @@ Rules:
 @click.option(
     "--dry-run", is_flag=True, help="Show what would be fixed without making changes"
 )
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="Apply fixes without interactive confirmation (only for local fixers).",
+)
+@click.option(
+    "--ai",
+    "use_ai",
+    is_flag=True,
+    help="Force AI-driven fix plan instead of built-in fixers.",
+)
 @click.pass_context
-async def fix(ctx: click.Context, category: str, dry_run: bool) -> None:
+async def fix(
+    ctx: click.Context, category: str, dry_run: bool, yes: bool, use_ai: bool
+) -> None:
     """
     🔧 Fix detected issues in specified category.
 
@@ -373,6 +430,52 @@ async def fix(ctx: click.Context, category: str, dry_run: bool) -> None:
     console.print(
         Panel(f"[bold yellow]Fix mode: {mode} - Category: {category}[/bold yellow]")
     )
+
+    # Prefer built-in fixers for safety; fall back to AI if requested or missing
+    fixers = [f for f in get_all_fixers() if category in (f.category, "all")]
+
+    if fixers and not use_ai:
+        console.print("[cyan]Using built-in safe fixers.[/cyan]")
+        for fixer in fixers:
+            console.print(
+                f"\n[bold cyan]{fixer.name}[/bold cyan] (category: {fixer.category})"
+            )
+
+            needs_fix, reason = await fixer.check()
+            if not needs_fix:
+                console.print(f"[green]Status OK:[/green] {reason}")
+                continue
+
+            console.print(f"[yellow]Issue detected:[/yellow] {reason}")
+            plan = await fixer.apply(dry_run=True)
+            console.print("[bold]Planned actions:[/bold]")
+            for step in plan:
+                console.print(f"- {step}")
+
+            if dry_run:
+                console.print("[dim]Dry-run only; no changes executed.[/dim]")
+                continue
+
+            if fixer.requires_root and not is_root():
+                console.print(
+                    "[red]Skipping: root privileges required. Run with sudo.[/red]"
+                )
+                continue
+
+            if not yes:
+                proceed = click.confirm("Apply this fix now?", default=False)
+                if not proceed:
+                    console.print("[dim]Skipped by user.[/dim]")
+                    continue
+
+            try:
+                results = await fixer.apply(dry_run=False)
+                for res in results:
+                    console.print(f"[green]✓ {res}[/green]")
+            except Exception as e:
+                console.print(f"[red]Fixer failed: {e}[/red]")
+
+        return
 
     task = f"""
 Fix all {category} issues detected in recent diagnostics.
@@ -521,14 +624,137 @@ Provide a brief status summary.
 
 
 @cli.command()
+@click.option("--message", "-m", help="Send a single message and exit")
+@click.pass_context
+async def chat(ctx: click.Context, message: Optional[str]) -> None:
+    """
+    💬 Chat with SOS Agent (stores session history).
+    """
+    client: SOSAgentClient = ctx.obj["client"]
+    config: SOSConfig = ctx.obj["config"]
+
+    if not _has_provider_key(config):
+        console.print(
+            "[red]No API key configured. Run 'sos setup' or set environment variables.[/red]"
+        )
+        return
+
+    store = FileSessionStore()
+    issue = await store.get_issue()
+    history = await store.get_chat_history()
+
+    if history:
+        console.print("[dim]Loaded previous chat history.[/dim]")
+
+    async def _send_message(user_message: str) -> None:
+        if not user_message.strip():
+            console.print("[yellow]Empty message ignored.[/yellow]")
+            return
+
+        context_prefix = f"Context (User Issue): {issue}\n\n" if issue else ""
+        full_prompt = f"{context_prefix}{user_message}"
+
+        await store.save_chat_message("user", user_message)
+        console.print(f"[cyan]You:[/cyan] {user_message}")
+        console.print("[magenta]Agent:[/magenta] ", end="")
+
+        response_text = ""
+        try:
+            async for chunk in client.execute_rescue_task(full_prompt):
+                text_chunk = ""
+                if hasattr(chunk, "content"):
+                    for block in chunk.content:
+                        if hasattr(block, "text"):
+                            text_chunk += block.text
+                elif isinstance(chunk, dict) and "content" in chunk:
+                    for block in chunk["content"]:
+                        if block.get("type") == "text":
+                            text_chunk += block["text"]
+                elif isinstance(chunk, str):
+                    text_chunk = chunk
+
+                if text_chunk:
+                    response_text += text_chunk
+                    console.print(text_chunk, end="")
+            console.print()  # Newline after streaming
+        except Exception as e:
+            console.print(f"[red]Error during chat: {e}[/red]")
+            return
+
+        if response_text:
+            await store.save_chat_message("assistant", response_text)
+
+    if message:
+        await _send_message(message)
+        return
+
+    # Interactive loop
+    console.print("[dim]Type 'exit' or 'quit' to leave chat.[/dim]")
+    while True:
+        user_message = await click.prompt("You", default="", show_default=False)
+        if user_message.lower() in {"exit", "quit"}:
+            break
+        await _send_message(user_message)
+
+
+@cli.command()
 @click.pass_context
 async def menu(ctx: click.Context) -> None:
     """
     📋 Launch Interactive TUI (Text User Interface).
     """
-    from .tui.app import start_tui
+    from .tui.app import start_tui_async
 
-    start_tui()
+    await start_tui_async()
+
+
+@cli.command("tui-screenshot")
+@click.option(
+    "--out",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Output SVG path (default: ./SOS_Agent_<timestamp>.svg)",
+)
+@click.option(
+    "--png",
+    "as_png",
+    is_flag=True,
+    help="Also export PNG (uses headless Chrome if available).",
+)
+@click.pass_context
+async def tui_screenshot(ctx: click.Context, out: Optional[str], as_png: bool) -> None:
+    """Save a TUI screenshot without manual Ctrl+P."""
+    from datetime import datetime
+    from .tui.app import SOSApp
+
+    ts = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+    svg_path = Path(out) if out else Path.cwd() / f"SOS_Agent_{ts}.svg"
+
+    app = SOSApp(init_client=False)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        saved = app.save_screenshot(filename=svg_path.name, path=str(svg_path.parent))
+
+    console.print(f"[green]Saved:[/green] {saved}")
+
+    if not as_png:
+        return
+
+    png_path = svg_path.with_suffix(".png")
+    if shutil.which("google-chrome"):
+        cmd = (
+            f"google-chrome --headless --disable-gpu --no-sandbox "
+            f'--window-size=2200,1200 --screenshot="{png_path}" "file://{svg_path}"'
+        )
+        rc, _, err = await _run_shell(cmd)
+        if rc == 0 and png_path.exists():
+            console.print(f"[green]Saved:[/green] {png_path}")
+            return
+        console.print(f"[yellow]PNG export failed:[/yellow] {err.strip()}")
+
+    console.print(
+        "[yellow]PNG export not available (install Chrome or use another SVG viewer).[/yellow]"
+    )
 
 
 @cli.command()
@@ -569,18 +795,225 @@ Provide recommendations for any issues found.
     default="all",
     help="Application platform to optimize",
 )
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="Execute suggested steps without per-step confirmation (still shows preview).",
+)
+@click.option(
+    "--ai",
+    "use_ai",
+    is_flag=True,
+    help="Use AI-only optimization plan instead of interactive local steps.",
+)
 @click.pass_context
-async def optimize_apps(ctx: click.Context, platform: str) -> None:
+async def optimize_apps(
+    ctx: click.Context, platform: str, yes: bool, use_ai: bool
+) -> None:
     """
     📦 Optimize, clean, and fix applications.
 
     Supports: flatpak, snap, docker, appimage, apt
     """
     client: SOSAgentClient = ctx.obj["client"]
+    config: SOSConfig = ctx.obj["config"]
 
     console.print(
         Panel(f"[bold cyan]Optimizing {platform} applications...[/bold cyan]")
     )
+
+    if not use_ai:
+        console.print(
+            Panel(
+                _t(
+                    config,
+                    "Interaktivní režim: nejdřív preview (dry-run), pak nabídka provedení kroků.",
+                    "Interactive mode: preview first (dry-run), then offer to execute steps.",
+                ),
+                style="cyan",
+            )
+        )
+
+        steps: list[tuple[str, str, Optional[str]]] = []
+        # (label, preview_cmd, exec_cmd)
+
+        if platform in {"all", "apt"}:
+            if shutil.which("apt-get"):
+                steps.extend(
+                    [
+                        (
+                            "APT autoremove (preview)",
+                            "sudo -n true >/dev/null 2>&1 && sudo apt-get -s autoremove || apt-get -s autoremove",
+                            "sudo apt-get autoremove -y",
+                        ),
+                        (
+                            "APT upgrade (preview)",
+                            "sudo -n true >/dev/null 2>&1 && sudo apt-get -s upgrade || apt-get -s upgrade",
+                            "sudo apt-get upgrade -y",
+                        ),
+                    ]
+                )
+            else:
+                console.print(
+                    _t(
+                        config,
+                        "[yellow]APT není k dispozici (apt-get nenalezen).[/yellow]",
+                        "[yellow]APT not available (apt-get not found).[/yellow]",
+                    )
+                )
+
+            if shutil.which("deborphan"):
+                steps.append(
+                    (
+                        "Deborphan (orphan packages)",
+                        "deborphan",
+                        None,
+                    )
+                )
+
+        if platform in {"all", "flatpak"}:
+            if shutil.which("flatpak"):
+                steps.append(
+                    (
+                        "Flatpak unused (preview)",
+                        "flatpak uninstall --unused --dry-run",
+                        "flatpak uninstall --unused -y",
+                    )
+                )
+            else:
+                console.print(
+                    _t(
+                        config,
+                        "[yellow]Flatpak není k dispozici.[/yellow]",
+                        "[yellow]Flatpak not available.[/yellow]",
+                    )
+                )
+
+        if platform in {"all", "snap"}:
+            if shutil.which("snap"):
+                steps.append(("Snap list (all)", "snap list --all", None))
+                steps.append(
+                    (
+                        "Snap disabled revisions (preview)",
+                        "snap list --all | awk '/disabled/{print $1, $3}'",
+                        'snap list --all | awk \'/disabled/{print $1, $3}\' | while read snap rev; do sudo snap remove "$snap" --revision="$rev"; done',
+                    )
+                )
+            else:
+                console.print(
+                    _t(
+                        config,
+                        "[yellow]Snap není k dispozici.[/yellow]",
+                        "[yellow]Snap not available.[/yellow]",
+                    )
+                )
+
+        if platform in {"all", "docker"}:
+            if shutil.which("docker"):
+                steps.append(("Docker disk usage", "docker system df", None))
+                steps.append(
+                    (
+                        "Docker prune (preview)",
+                        "docker system prune --dry-run 2>/dev/null || echo 'docker system prune does not support --dry-run; will ask before running.'",
+                        "docker system prune -f",
+                    )
+                )
+            else:
+                console.print(
+                    _t(
+                        config,
+                        "[yellow]Docker není k dispozici.[/yellow]",
+                        "[yellow]Docker not available.[/yellow]",
+                    )
+                )
+
+        if platform in {"all", "appimage"}:
+            console.print(
+                _t(
+                    config,
+                    "[dim]AppImage optimalizace zatím jen informativní (TODO).[/dim]",
+                    "[dim]AppImage optimization is informational only (TODO).[/dim]",
+                )
+            )
+
+        if not steps:
+            console.print(
+                _t(
+                    config,
+                    "[yellow]Žádné kroky k provedení (nebo chybí nástroje).[/yellow]",
+                    "[yellow]No actionable steps (or required tools missing).[/yellow]",
+                )
+            )
+            return
+
+        for label, preview_cmd, exec_cmd in steps:
+            console.print(Panel(label, style="bold magenta"))
+            rc, out, err = await _run_shell(preview_cmd)
+            if out.strip():
+                console.print(out.rstrip())
+            if err.strip():
+                console.print(f"[dim]{err.rstrip()}[/dim]")
+            if rc != 0:
+                console.print(
+                    _t(
+                        config,
+                        f"[yellow]Pozn.: preview příkaz skončil kódem {rc}.[/yellow]",
+                        f"[yellow]Note: preview command exited with {rc}.[/yellow]",
+                    )
+                )
+
+            if not exec_cmd:
+                continue
+
+            if yes:
+                proceed = True
+            elif not sys.stdin.isatty():
+                console.print(
+                    _t(
+                        config,
+                        "[dim]Bez TTY: přeskočeno. Pro provedení použij `--yes` nebo spusť interaktivně.[/dim]",
+                        "[dim]No TTY detected: skipped. Use `--yes` or run interactively to execute.[/dim]",
+                    )
+                )
+                proceed = False
+            else:
+                proceed = click.confirm(
+                    _t(
+                        config,
+                        f"Chceš provést tento krok teď? ({label})",
+                        f"Execute this step now? ({label})",
+                    ),
+                    default=False,
+                )
+            if not proceed:
+                continue
+
+            # Safety gate
+            perm = await safe_permission_handler(
+                "Bash", {"command": exec_cmd}, {"emergency_mode": config.emergency_mode}
+            )
+            if perm.get("behavior") == "deny":
+                console.print(f"[red]Blocked:[/red] {perm.get('reason')}")
+                continue
+
+            console.print(
+                _t(config, "[cyan]Spouštím...[/cyan]", "[cyan]Running...[/cyan]")
+            )
+            rc2, out2, err2 = await _run_shell(exec_cmd)
+            if out2.strip():
+                console.print(out2.rstrip())
+            if err2.strip():
+                console.print(f"[dim]{err2.rstrip()}[/dim]")
+            if rc2 != 0:
+                console.print(
+                    _t(
+                        config,
+                        f"[red]Krok selhal (exit {rc2}).[/red]",
+                        f"[red]Step failed (exit {rc2}).[/red]",
+                    )
+                )
+        return
 
     task = f"""
 Optimize and clean {platform} applications:

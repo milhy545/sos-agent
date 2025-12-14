@@ -49,6 +49,19 @@ kernel = await get_kernel_version()  # uname -a
 
 ---
 
+## 2025-05 Updates (TUI + Chat)
+
+- CLI `sos diagnose --issue` nyní ukládá problém a posílá ho i do promptu (testováno v `tests/e2e/test_cli_parsing.py`).
+- Nový příkaz `sos chat` pro perzistentní chat se session (bez klíče vypíše varování).
+- `sos fix` nejprve zkusí vestavěné fixery (Dry-Run + double-confirm), případně přepne na AI s `--ai`.
+- TUI menu ve stylu antiX-cli-cc: nové obrazovky Diagnostics a Logs, fixery, monitor start/stop.
+- TUI testy: `pytest tests/tui/test_app.py` (Textual musí být nainstalovaný – `poetry install --with dev`).
+
+## Dev workflow (bez `install.sh`)
+
+- Jednorázově přepni `sos` na běh z repa: `./scripts/use-local-sos.sh`
+- Od té chvíle každý `sos ...` používá aktuální kód z `sos-agent` (změny se projeví hned).
+
 ## 🚨 CRITICAL LESSONS LEARNED
 
 ### **Issue #3: AI Hallucination - No Real Data Collection** ⚠️ **FIXED**

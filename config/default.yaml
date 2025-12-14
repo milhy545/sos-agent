@@ -1,41 +1,29 @@
-# SOS Agent Default Configuration
-
-# Permission mode: "plan" (require approval) or "acceptEdits" (auto-execute)
-permission_mode: plan
-
-# Emergency mode: false (normal) or true (aggressive recovery)
-emergency_mode: false
-
-# AI provider selection (auto = choose based on available keys)
-ai_provider: auto
-
-# Claude model to use
-model: claude-sonnet-4
-
-# Allowed tools
+ai_language: cs
+ai_provider: inception
 allowed_tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - analyze_system_logs
-  - check_system_health
-  - manage_processes
-  - emergency_cleanup
-
-# Disallowed tools
-disallowed_tools:
-  - WebSearch
-  - WebFetch
-
-# Paths
-log_dir: logs
+- Read
+- Write
+- Bash
+- Grep
+- Glob
+- analyze_system_logs
+- check_system_health
+- manage_processes
+- emergency_cleanup
 config_dir: config
-
-# Critical services (never stop or disable)
 critical_services:
-  - sshd
-  - NetworkManager
-  - ollama
-  - tailscaled
+- sshd
+- NetworkManager
+- ollama
+- tailscaled
+disallowed_tools:
+- WebSearch
+- WebFetch
+emergency_mode: false
+gemini_model: gemini-2.0-flash-exp
+inception_model: mercury-coder
+log_dir: logs
+model: claude-sonnet-4
+openai_model: gpt-4o
+permission_mode: plan
+shell: /bin/zsh

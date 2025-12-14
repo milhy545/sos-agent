@@ -81,6 +81,7 @@ sos diagnose --category hardware
 sos menu                        # 🖥️ Launch Interactive TUI (Recommended)
 sos diagnose --category <type>  # Run diagnostics (CLI)
 sos diagnose --issue "problem"  # Run diagnostics with specific issue
+sos chat --message "hi"         # Chat with the agent (stores session context)
 sos fix                         # Interactive fix mode (CLI)
 sos emergency                   # Emergency fallback diagnostics
 sos monitor                     # Real-time system monitoring
@@ -99,10 +100,12 @@ sos menu
 
 Features:
 - **Grid Menu**: Fast navigation (0-9 keys).
-- **Chat**: Persistent AI chat with system context.
-- **Fixers**: Guided fix interface with Dry-Run support.
-- **Monitor**: Real-time dashboards.
-- **Cyberpunk Theme**: High contrast for emergency visibility.
+- **antiX-cli-cc vibe**: Status bar with current issue + bold neon grid.
+- **Chat**: Persistent AI chat with system/issue context.
+- **Fixers**: Guided fix interface with Dry-Run + double-confirm execute.
+- **Diagnostics Hub**: See the last `--issue` and shell tips from TUI.
+- **Logs**: Tail recent agent logs directly in TUI.
+- **Monitor**: Start/stop real-time dashboards.
 
 ### Diagnostic Categories
 

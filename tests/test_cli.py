@@ -73,11 +73,24 @@ async def test_cli_fix_dry_run(runner, mock_client_cls):
 
     runner = AsyncCliRunner()
 
-    result = await runner.invoke(cli, ["fix", "hardware", "--dry-run"])
+    class DummyFixer:
+        id = "dummy"
+        name = "Dummy Fix"
+        category = "hardware"
+        requires_root = False
+
+        async def check(self):
+            return True, "Needs attention"
+
+        async def apply(self, dry_run=False):
+            return ["noop"] if dry_run else ["fixed"]
+
+    with patch("src.cli.get_all_fixers", return_value=[DummyFixer()]):
+        result = await runner.invoke(cli, ["fix", "hardware", "--dry-run"])
 
     assert result.exit_code == 0
-    assert "dry-run" in result.output
-    mock_client_cls.return_value.execute_rescue_task.assert_called_once()
+    assert "Planned actions" in result.output
+    mock_client_cls.return_value.execute_rescue_task.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -114,7 +127,10 @@ async def test_cli_menu(runner, mock_client_cls):
 
     runner = AsyncCliRunner()
 
-    with patch("src.tui.app.start_tui") as mock_start:
+    pytest.importorskip("textual")
+    import src.tui.app as tui_app
+
+    with patch.object(tui_app, "start_tui_async") as mock_start:
         result = await runner.invoke(cli, ["menu"])
         assert result.exit_code == 0
         mock_start.assert_called_once()
@@ -138,9 +154,24 @@ async def test_cli_optimize_apps(runner, mock_client_cls):
 
     runner = AsyncCliRunner()
 
-    result = await runner.invoke(cli, ["optimize-apps", "--platform", "flatpak"])
+    result = await runner.invoke(
+        cli, ["optimize-apps", "--platform", "flatpak", "--ai"]
+    )
     assert result.exit_code == 0
     assert "Optimizing flatpak" in result.output
+    mock_client_cls.return_value.execute_rescue_task.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_cli_fix_ai_fallback(runner, mock_client_cls):
+    """AI path still available when requested."""
+    from asyncclick.testing import CliRunner as AsyncCliRunner
+
+    runner = AsyncCliRunner()
+
+    result = await runner.invoke(cli, ["fix", "hardware", "--ai"])
+
+    assert result.exit_code == 0
     mock_client_cls.return_value.execute_rescue_task.assert_called_once()
 
 
@@ -214,3 +245,63 @@ async def test_cli_gcloud_setup_auto_cancelled(runner, mock_client_cls):
         result = await runner.invoke(cli, ["gcloud", "init", "--auto"], input="n\n")
         assert result.exit_code == 0
         assert "Setup cancelled" in result.output
+
+
+@pytest.mark.asyncio
+async def test_cli_chat_missing_key():
+    """Chat should warn when no API key is configured."""
+    from asyncclick.testing import CliRunner as AsyncCliRunner
+    from src.agent.config import SOSConfig
+
+    runner = AsyncCliRunner()
+    cfg = SOSConfig(
+        gemini_api_key="",
+        openai_api_key="",
+        inception_api_key="",
+        anthropic_api_key="",
+    )
+
+    with patch("src.cli.load_config", new_callable=AsyncMock, return_value=cfg):
+        with patch("src.cli.SOSAgentClient"):
+            with patch("src.cli.FileSessionStore"):
+                result = await runner.invoke(
+                    cli, ["chat"], obj={"client": object(), "config": cfg}
+                )
+
+                assert result.exit_code == 0
+                assert "No API key configured" in result.output
+
+
+@pytest.mark.asyncio
+async def test_cli_chat_message_flow():
+    """Chat single message stores history and streams response."""
+    from asyncclick.testing import CliRunner as AsyncCliRunner
+    from src.agent.config import SOSConfig
+
+    runner = AsyncCliRunner()
+    cfg = SOSConfig(openai_api_key="test-key")
+
+    with patch("src.cli.load_config", new_callable=AsyncMock, return_value=cfg):
+        with patch("src.cli.FileSessionStore") as mock_store_cls:
+            mock_store = mock_store_cls.return_value
+            mock_store.get_issue = AsyncMock(return_value="Slow Wi-Fi")
+            mock_store.get_chat_history = AsyncMock(return_value=[])
+            mock_store.save_chat_message = AsyncMock()
+
+            async def _fake_stream(task):
+                assert "Slow Wi-Fi" in task
+                if False:
+                    yield "noop"
+
+            with patch("src.cli.SOSAgentClient") as mock_client_cls:
+                mock_client = mock_client_cls.return_value
+                mock_client.execute_rescue_task.side_effect = _fake_stream
+
+                result = await runner.invoke(
+                    cli,
+                    ["chat", "--message", "Hello"],
+                    obj={"client": mock_client, "config": cfg},
+                )
+
+                assert result.exit_code == 0
+                mock_store.save_chat_message.assert_any_call("user", "Hello")

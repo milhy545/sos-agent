@@ -5,6 +5,22 @@ Screen {
     color: #e0e0e0;
 }
 
+.title {
+    text-style: bold;
+}
+
+#status-bar {
+    padding: 1;
+    border-bottom: heavy #00ffff;
+}
+
+#session-label {
+    color: #ffff00;
+}
+
+#provider-label {
+    color: #00ffff;
+}
 /* Common Header */
 Header {
     background: #000000;
@@ -25,42 +41,54 @@ Footer {
 
 /* Main Menu Grid */
 .menu-grid {
-    layout: grid;
-    grid-size: 2;
-    grid-gutter: 1 2;
     padding: 2;
-    align: center middle;
 }
 
-/* Menu Buttons */
-Button {
+.menu-row {
+    height: 3;
+    margin-bottom: 1;
+}
+
+.menu-row Button {
+    width: 1fr;
+    margin-right: 2;
+}
+
+.menu-row Button:last-of-type {
+    margin-right: 0;
+}
+
+/* Buttons (override Textual defaults) */
+Screen Button {
     width: 100%;
     height: 3;
     background: #1a1a1a;
     color: #00ffff;
     border: solid #00aaaa;
     text-style: bold;
+    content-align: center middle;
+    text-align: center;
 }
 
-Button:hover {
+Screen Button:hover {
     background: #2a2a2a;
     border: solid #ff00ff;
     color: #ff00ff;
 }
 
-Button:focus {
+Screen Button:focus {
     background: #2a2a2a;
     border: solid #ffff00;
     color: #ffff00;
 }
 
 /* Specific button styles if needed */
-.btn-emergency {
+Screen Button.btn-emergency {
     color: #ff0000;
     border: solid #ff0000;
 }
 
-.btn-emergency:hover {
+Screen Button.btn-emergency:hover {
     background: #330000;
 }
 
@@ -94,9 +122,42 @@ Panel {
     padding: 2;
 }
 
+#setup-actions {
+    dock: bottom;
+    height: 3;
+    padding: 0 2;
+}
+
+#status-output {
+    dock: bottom;
+    height: 6;
+    padding: 1 2;
+    background: #0a0a0a;
+    border: heavy #00aaaa;
+}
+
+#setup-scroll {
+    height: 1fr;
+}
+
+#diag-actions {
+    dock: bottom;
+    height: 3;
+    padding: 0 2;
+}
+
+#diag-scroll {
+    height: 1fr;
+}
+
 Label {
     color: #ffff00;
     margin-top: 1;
+}
+
+.body {
+    color: #c0c0c0;
+    padding: 1;
 }
 
 Input {
@@ -112,7 +173,7 @@ Input:focus {
 /* Monitor Grid */
 .monitor-grid {
     layout: grid;
-    grid-size: 3;
+    grid-size: 3 1;
     grid-gutter: 1;
     padding: 1;
 }

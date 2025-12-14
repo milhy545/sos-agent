@@ -81,7 +81,7 @@ async def test_safety_integration_real(monkeypatch):
         "src.cli.safe_permission_handler", side_effect=safe_permission_handler
     ) as mock_handler:
         runner = AsyncCliRunner()
-        await runner.invoke(cli, ["--provider", "inception", "fix", "services"])
+        await runner.invoke(cli, ["--provider", "inception", "fix", "services", "--ai"])
 
         # We expect the handler to be called because the agent suggested a command
         # (Assuming the system parses suggestions and checks permissions)
