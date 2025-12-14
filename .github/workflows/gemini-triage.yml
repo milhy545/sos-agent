@@ -55,6 +55,11 @@ jobs:
             core.info(`Found ${labelNames.length} labels: ${labelNames.join(', ')}`);
             return labelNames;
 
+      - name: 'Install Gemini CLI'
+        run: |
+          npm install -g @google/gemini-cli
+          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
+
       - name: 'Run Gemini issue analysis'
         id: 'gemini_analysis'
         if: |-

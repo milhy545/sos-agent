@@ -85,6 +85,11 @@ jobs:
           ISSUE_COUNT="$(echo "${ISSUES}" | jq 'length')"
           echo "✅ Found ${ISSUE_COUNT} issue(s) to triage! 🎯"
 
+      - name: 'Install Gemini CLI'
+        run: |
+          npm install -g @google/gemini-cli
+          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
+
       - name: 'Run Gemini Issue Analysis'
         id: 'gemini_issue_analysis'
         if: |-
