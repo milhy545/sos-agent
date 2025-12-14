@@ -33,6 +33,16 @@ class SessionStore(ABC):
         pass
 
     @abstractmethod
+    async def save_diagnostic_result(self, result: Dict[str, Any]) -> None:
+        """Save a diagnostic result."""
+        pass
+
+    @abstractmethod
+    async def get_last_diagnostic_result(self) -> Optional[Dict[str, Any]]:
+        """Retrieve the last diagnostic result."""
+        pass
+
+    @abstractmethod
     async def clear_session(self) -> None:
         """Clear all session data."""
         pass
@@ -106,7 +116,16 @@ class FileSessionStore(SessionStore):
         """Retrieve the current diagnostic issue."""
         return self._data.get("current_issue")
 
+    async def save_diagnostic_result(self, result: Dict[str, Any]) -> None:
+        """Save a diagnostic result."""
+        self._data["last_diagnostic"] = result
+        self._save()
+
+    async def get_last_diagnostic_result(self) -> Optional[Dict[str, Any]]:
+        """Retrieve the last diagnostic result."""
+        return self._data.get("last_diagnostic")
+
     async def clear_session(self) -> None:
         """Clear all session data."""
-        self._data = {"chat_history": [], "current_issue": None}
+        self._data = {"chat_history": [], "current_issue": None, "last_diagnostic": None}
         self._save()

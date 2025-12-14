@@ -1,4 +1,5 @@
 /* Cyberpunk Theme for SOS Agent */
+/* High Contrast, Readable, yet Cyberpunk */
 
 Screen {
     background: #050505;
@@ -13,6 +14,7 @@ Header {
     height: 3;
     content-align: center middle;
     border-bottom: solid #ff00ff;
+    text-style: bold;
 }
 
 /* Footer / Status Bar */
@@ -21,6 +23,15 @@ Footer {
     color: #ffff00;
     dock: bottom;
     height: 1;
+}
+
+.status-bar {
+    background: #111111;
+    color: #00ff00; /* Green for status */
+    height: 1;
+    padding-left: 1;
+    text-align: center;
+    border-bottom: solid #333333;
 }
 
 /* Main Menu Grid */
@@ -37,24 +48,31 @@ Button {
     width: 100%;
     height: 3;
     background: #1a1a1a;
-    color: #00ffff;
-    border: solid #00aaaa;
+    color: #00ffff; /* Cyan text */
+    border: solid #00aaaa; /* Cyan border */
     text-style: bold;
 }
 
 Button:hover {
     background: #2a2a2a;
-    border: solid #ff00ff;
-    color: #ff00ff;
+    border: solid #ff00ff; /* Magenta hover border */
+    color: #ff00ff; /* Magenta hover text */
 }
 
 Button:focus {
     background: #2a2a2a;
-    border: solid #ffff00;
-    color: #ffff00;
+    border: double #ffff00; /* Yellow focus border - double for visibility */
+    color: #ffff00; /* Yellow focus text */
 }
 
-/* Specific button styles if needed */
+Button.-disabled {
+    color: #555555;
+    border: solid #333333;
+    background: #0a0a0a;
+    text-style: dim;
+}
+
+/* Emergency Button */
 .btn-emergency {
     color: #ff0000;
     border: solid #ff0000;
@@ -62,14 +80,68 @@ Button:focus {
 
 .btn-emergency:hover {
     background: #330000;
+    color: #ffffff;
 }
 
-/* Static Panels */
-Panel {
-    background: #0a0a0a;
-    border: heavy #00ffff;
-    padding: 1;
+/* Titles */
+.title {
+    content-align: center middle;
+    text-style: bold;
+    color: #ff00ff;
+    margin-top: 1;
+    margin-bottom: 1;
+}
+
+/* Logs Screen */
+RichLog {
+    background: #080808;
+    border: solid #00ffff;
+    height: 1fr;
     margin: 1;
+    padding: 1;
+    scrollbar-color: #ff00ff;
+}
+
+.logs-controls {
+    layout: grid;
+    grid-size: 4;
+    grid-gutter: 1;
+    height: 3;
+    margin: 1;
+}
+
+/* Diagnostics Screen */
+#diag-container {
+    padding: 2;
+    align: center top;
+}
+
+LoadingIndicator {
+    color: #00ffff;
+    height: auto;
+    margin: 2;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Markdown Output */
+Markdown {
+    background: #0a0a0a;
+    padding: 1;
+    border: solid #333333;
+    margin-top: 1;
+}
+
+Markdown H1 {
+    color: #ff00ff;
+    text-style: bold underline;
+}
+
+Markdown H2 {
+    color: #00ffff;
+    text-style: bold;
 }
 
 /* Chat Styles */
