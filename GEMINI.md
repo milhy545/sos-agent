@@ -53,12 +53,18 @@ cp .env.example .env
 # Run via Poetry
 poetry run python -m src.cli diagnose --category hardware
 
+# Run TUI (Interactive Menu)
+poetry run python -m src.cli menu
+
+# Run Chat
+poetry run python -m src.cli chat
+
 # Run via installed script (simulating end-user)
 ./sos-launcher.sh diagnose --category services
 ```
 
 ### Testing & Quality
-**Note:** There are currently no automated tests (pytest is set up but empty). Testing is primarily manual.
+The project uses `pytest` for testing and `black`/`ruff` for linting.
 ```bash
 # Type checking
 poetry run mypy src/
@@ -66,6 +72,9 @@ poetry run mypy src/
 # Formatting & Linting
 poetry run black src/
 poetry run ruff check src/
+
+# Run Tests
+poetry run pytest
 ```
 
 ## Critical "Golden Rules" (from DEVELOPMENT.md)
@@ -78,11 +87,13 @@ poetry run ruff check src/
 ## Directory Structure
 - `src/`: Source code.
     - `agent/`: AI client implementations (`gemini_client.py`, `openai_client.py`, etc.).
-    - `tools/`: System interaction tools (`log_analyzer.py`).
+    - `tools/`: System interaction tools (`log_analyzer.py`, `fixers/`).
     - `monitors/`: Real-time monitoring logic.
+    - `tui/`: Text User Interface (Textual app, screens, styles).
     - `cli.py`: Main entry point and command definitions.
 - `docs/`: Extensive documentation. **Read `DEVELOPMENT.md` before complex changes.**
 - `config/`: Default configuration YAMLs.
+- `tests/`: Automated tests (E2E, unit).
 
 ## Configuration
 - **`.env`**: API keys and local overrides. **Never commit this.**
