@@ -32,11 +32,13 @@ jobs:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
 
-      - name: 'Install commands'
-        run: |-
+      - name: 'Setup Gemini Configuration'
+        run: |
           mkdir -p .gemini/commands
-          cp .github/commands/*.toml .gemini/commands/
           rm -f GEMINI.md
+          for file in .github/commands/*.toml; do
+            envsubst < "$file" > ".gemini/commands/$(basename "$file")"
+          done
 
       - name: 'Get repository labels'
         id: 'get_labels'
