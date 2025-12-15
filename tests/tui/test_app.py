@@ -48,12 +48,18 @@ async def test_menu_to_chat():
         with patch(
             "src.tui.screens.chat.load_config", new_callable=AsyncMock
         ) as mock_cfg:
-            mock_cfg.return_value = None
-            async with app.run_test() as pilot:
-                await pilot.press("4")
-                assert isinstance(app.screen, ChatScreen)
-                await pilot.press("escape")
-                assert isinstance(app.screen, MainMenu)
+            # Create a mock config object
+            from src.agent.config import SOSConfig
+
+            cfg = SOSConfig(ai_provider="dummy")
+            mock_cfg.return_value = cfg
+
+            with patch("src.tui.screens.chat.SOSAgentClient") as MockClient:
+                async with app.run_test() as pilot:
+                    await pilot.press("4")
+                    assert isinstance(app.screen, ChatScreen)
+                    await pilot.press("escape")
+                    assert isinstance(app.screen, MainMenu)
 
 
 @pytest.mark.asyncio
