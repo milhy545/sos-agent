@@ -29,6 +29,14 @@ jobs:
       issues: 'read'
       pull-requests: 'read'
     steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@v4'
+
+      - name: 'Install commands'
+        run: |-
+          mkdir -p .gemini/commands
+          cp .github/commands/*.toml .gemini/commands/
+
       - name: 'Get repository labels'
         id: 'get_labels'
         uses: 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea' # ratchet:actions/github-script@v7.0.1
@@ -54,11 +62,6 @@ jobs:
             core.setOutput('available_labels', labelNames.join(','));
             core.info(`Found ${labelNames.length} labels: ${labelNames.join(', ')}`);
             return labelNames;
-
-      - name: 'Install Gemini CLI'
-        run: |
-          npm install -g @google/gemini-cli
-          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
 
       - name: 'Run Gemini issue analysis'
         id: 'gemini_analysis'
