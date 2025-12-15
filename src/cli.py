@@ -135,7 +135,9 @@ async def _safe_print_stream(stream):
 @click.option("--emergency", is_flag=True, help="Enable emergency mode")
 @click.option(
     "--provider",
-    type=click.Choice(["gemini", "openai", "inception", "claude-agentapi", "claude-sdk"]),
+    type=click.Choice(
+        ["gemini", "openai", "inception", "claude-agentapi", "claude-sdk"]
+    ),
     default=None,
     help="AI provider (overrides config)",
 )

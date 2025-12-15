@@ -49,9 +49,7 @@ class SOSAgentClient:
             )
             self.client_type = "agentapi"
         elif provider == "claude-sdk":
-            self.client = ClaudeSDKClientAdapter(
-                mcp_enabled=config.mcp_server_enabled
-            )
+            self.client = ClaudeSDKClientAdapter(mcp_enabled=config.mcp_server_enabled)
             self.client_type = "claude-sdk"
         elif provider == "gemini":
             if not config.gemini_api_key:
