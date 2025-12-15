@@ -32,6 +32,8 @@ jobs:
         run: |-
           mkdir -p .gemini/commands
           cp .github/commands/*.toml .gemini/commands/
+          ls -R .gemini
+          cat .gemini/commands/gemini-invoke.toml
 
       - name: 'Mint identity token'
         id: 'mint_identity_token'
