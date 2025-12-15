@@ -69,4 +69,8 @@ async def test_clear_session(session_file):
 
     with open(session_file, "r") as f:
         data = json.load(f)
-    assert data == {"chat_history": [], "current_issue": None}
+    assert data == {
+        "chat_history": [],
+        "current_issue": None,
+        "last_diagnostic": None,
+    }
