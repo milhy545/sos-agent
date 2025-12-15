@@ -42,8 +42,8 @@ These rules are absolute and must be followed without exception.
 Begin every task by building a complete picture of the situation.
 
 1. **Initial Context**:
-    - **Title**: !{printenv TITLE}
-    - **Description**: !{printenv DESCRIPTION}
+    - **Title**: !{printenv ISSUE_TITLE}
+    - **Description**: !{printenv ISSUE_BODY}
     - **Event Name**: !{printenv EVENT_NAME}
     - **Is Pull Request**: !{printenv IS_PULL_REQUEST}
     - **Issue/PR Number**: !{printenv ISSUE_NUMBER}
