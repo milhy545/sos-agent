@@ -29,13 +29,21 @@ jobs:
         uses: 'actions/checkout@v4'
 
       - name: 'Setup Gemini Configuration'
+        env:
+          ISSUE_TITLE: '${{ github.event.pull_request.title || github.event.issue.title }}'
+          ISSUE_BODY: '${{ github.event.pull_request.body || github.event.issue.body }}'
+          EVENT_NAME: '${{ github.event_name }}'
+          IS_PULL_REQUEST: '${{ !!github.event.pull_request }}'
+          ISSUE_NUMBER: '${{ github.event.pull_request.number || github.event.issue.number }}'
+          REPOSITORY: '${{ github.repository }}'
+          ADDITIONAL_CONTEXT: '${{ inputs.additional_context }}'
         run: |
           mkdir -p .gemini/commands
-          # Remove GEMINI.md to avoid context conflict
           rm -f GEMINI.md
           
-          # Simply copy command files
-          cp .github/commands/*.toml .gemini/commands/
+          for file in .github/commands/*.toml; do
+            envsubst < "$file" > ".gemini/commands/$(basename "$file")"
+          done
           
           echo "DEBUG: Content of gemini-invoke.toml:"
           cat .gemini/commands/gemini-invoke.toml
@@ -71,7 +79,7 @@ jobs:
           gcp_workload_identity_provider: '${{ vars.GCP_WIF_PROVIDER }}'
           gemini_api_key: '${{ secrets.GEMINI_API_KEY }}'
           gemini_cli_version: '${{ vars.GEMINI_CLI_VERSION }}'
-          gemini_debug: 'true'
+          gemini_debug: '${{ fromJSON(vars.DEBUG || vars.ACTIONS_STEP_DEBUG || false) }}'
           gemini_model: '${{ vars.GEMINI_MODEL }}'
           google_api_key: '${{ secrets.GOOGLE_API_KEY }}'
           use_gemini_code_assist: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
