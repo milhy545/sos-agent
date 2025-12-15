@@ -32,11 +32,6 @@ jobs:
         run: |-
           mkdir -p .gemini/commands
           cp .github/commands/*.toml .gemini/commands/
-          ls -R .gemini
-          cat .gemini/commands/gemini-invoke.toml
-          # Verify if CLI picks up the commands
-          npm install -g @google/gemini-cli
-          gemini --help
 
       - name: 'Mint identity token'
         id: 'mint_identity_token'

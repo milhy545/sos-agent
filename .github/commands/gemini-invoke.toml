@@ -42,13 +42,13 @@ These rules are absolute and must be followed without exception.
 Begin every task by building a complete picture of the situation.
 
 1. **Initial Context**:
-    - **Title**: !{echo $TITLE}
-    - **Description**: !{echo $DESCRIPTION}
-    - **Event Name**: !{echo $EVENT_NAME}
-    - **Is Pull Request**: !{echo $IS_PULL_REQUEST}
-    - **Issue/PR Number**: !{echo $ISSUE_NUMBER}
-    - **Repository**: !{echo $REPOSITORY}
-    - **Additional Context/Request**: !{echo $ADDITIONAL_CONTEXT}
+    - **Title**: !{printenv TITLE}
+    - **Description**: !{printenv DESCRIPTION}
+    - **Event Name**: !{printenv EVENT_NAME}
+    - **Is Pull Request**: !{printenv IS_PULL_REQUEST}
+    - **Issue/PR Number**: !{printenv ISSUE_NUMBER}
+    - **Repository**: !{printenv REPOSITORY}
+    - **Additional Context/Request**: !{printenv ADDITIONAL_CONTEXT}
 
 2. **Deepen Context with Tools**: Use `get_issue`, `pull_request_read.get_diff`, and `get_file_contents` to investigate the request thoroughly.
 
