@@ -120,3 +120,30 @@ async def test_analyze_system_logs_parsing():
 
         assert len(results["hardware_errors"]) == 1
         assert len(results["driver_errors"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_analyze_system_logs_kernel_failure_silent_stderr():
+    """
+    Test when kernel log failure happens but stderr is empty.
+    """
+    with patch("asyncio.create_subprocess_exec") as mock_shell:
+        process_all = AsyncMock()
+        process_all.communicate.return_value = (
+            b'{"MESSAGE": "System ok", "PRIORITY": "6"}\n',
+            b"",
+        )
+        process_all.returncode = 0
+
+        process_kernel = AsyncMock()
+        process_kernel.communicate.return_value = (b"", b"")
+        process_kernel.returncode = 1
+
+        mock_shell.side_effect = [process_all, process_kernel]
+
+        results = await analyze_system_logs()
+
+        recommendations = results.get("recommendations", [])
+
+        # We expect a warning even if stderr is empty, because returncode is 1
+        assert any("Failed to read kernel logs" in r for r in recommendations)
