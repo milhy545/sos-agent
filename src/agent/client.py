@@ -7,6 +7,7 @@ from .agentapi_client import AgentAPIClient
 from .gemini_client import GeminiClient
 from .openai_client import OpenAIClient
 from .inception_client import InceptionClient
+from .claude_sdk_client import ClaudeSDKClientAdapter
 from .config import SOSConfig
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,11 @@ class SOSAgentClient:
                 claude_path="/usr/bin/claude",
             )
             self.client_type = "agentapi"
+        elif provider == "claude-sdk":
+            self.client = ClaudeSDKClientAdapter(
+                mcp_enabled=config.mcp_server_enabled
+            )
+            self.client_type = "claude-sdk"
         elif provider == "gemini":
             if not config.gemini_api_key:
                 raise ValueError(
@@ -136,7 +142,8 @@ class SOSAgentClient:
                         yield response_chunk
                 finally:
                     await self.client.stop_server()
-            elif self.client_type in ["gemini", "openai", "inception"]:
+            elif self.client_type in ["gemini", "openai", "inception", "claude-sdk"]:
+                # Direct API workflow (Gemini/OpenAI/Inception/ClaudeSDK)
                 async for response_chunk in self.client.query(
                     full_task, context=ctx, stream=stream
                 ):

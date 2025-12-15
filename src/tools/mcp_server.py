@@ -1,24 +1,46 @@
 """In-process MCP server for SOS Agent custom tools."""
 
 import logging
+from typing import Any, Dict
+
+from claude_agent_sdk import create_sdk_mcp_server, tool
+from claude_agent_sdk.types import McpSdkServerConfig
+
+from src.tools.log_analyzer import analyze_system_logs_mcp
 
 logger = logging.getLogger(__name__)
 
 
-def create_sos_mcp_server():
+def create_sos_mcp_server() -> McpSdkServerConfig:
     """
     Create in-process MCP server with SOS system tools.
 
-    NOTE: This is a placeholder for future MCP integration.
-    The Claude Agent SDK's create_sdk_mcp_server may not be available
-    in the current version, so we'll register tools differently.
-
-    For now, tools can be called directly from the agent via custom
-    tool definitions in .claude/CLAUDE.md
+    Returns:
+        McpSdkServerConfig: Configuration for the MCP server.
     """
-    logger.info("MCP server creation requested")
+    logger.info("Creating SOS MCP server with system tools")
 
-    # TODO: Implement when SDK supports in-process MCP servers
-    # For now, tools are available via direct Python calls
+    # Register tools
+    @tool(
+        name="analyze_system_logs",
+        description="Analyze system logs (journalctl) for errors, warnings, and security issues.",
+        input_schema={
+            "log_path": str,
+            "time_range": str,
+            "severity": str,
+        },
+    )
+    async def analyze_logs_wrapper(args: Dict[str, Any]) -> Dict[str, Any]:
+        """Wrapper for log analyzer tool."""
+        # Ensure args are strings as expected by the underlying function
+        str_args: Dict[str, str] = {k: str(v) for k, v in args.items()}
+        return await analyze_system_logs_mcp(str_args)
 
-    return None
+    # Create server
+    server_config = create_sdk_mcp_server(
+        name="sos-tools",
+        version="1.0.0",
+        tools=[analyze_logs_wrapper],
+    )
+
+    return server_config
