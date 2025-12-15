@@ -89,7 +89,7 @@ async def analyze_system_logs(
 
         # Check kernel logs specifically
         if process_kernel.returncode != 0:
-            error_msg = stderr_kernel.decode().strip() or "Unknown error"
+            error_msg = stderr_kernel.decode(errors='replace').strip() or "Unknown error"
             logger.error(f"journalctl kernel failed: {error_msg}")
             results["recommendations"].append(
                 f"⚠️  Failed to read kernel logs: {error_msg}"
