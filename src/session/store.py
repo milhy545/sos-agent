@@ -127,5 +127,9 @@ class FileSessionStore(SessionStore):
 
     async def clear_session(self) -> None:
         """Clear all session data."""
-        self._data = {"chat_history": [], "current_issue": None, "last_diagnostic": None}
+        self._data = {
+            "chat_history": [],
+            "current_issue": None,
+            "last_diagnostic": None,
+        }
         self._save()
