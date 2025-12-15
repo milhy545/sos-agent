@@ -55,6 +55,7 @@ class SOSConfig:
     disallowed_tools: List[str] = field(
         default_factory=lambda: ["WebSearch", "WebFetch"]
     )
+    mcp_server_enabled: bool = True
 
     # Paths
     log_dir: Path = field(default_factory=lambda: Path("logs"))
@@ -112,6 +113,8 @@ class SOSConfig:
             data["memory_mcp_enabled"] = self.memory_mcp_enabled
         if self.memory_mcp_port:
             data["memory_mcp_port"] = self.memory_mcp_port
+
+        data["mcp_server_enabled"] = self.mcp_server_enabled
 
         with open(config_path, "w") as f:
             yaml.dump(data, f, default_flow_style=False)
