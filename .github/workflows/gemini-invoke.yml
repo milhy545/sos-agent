@@ -32,6 +32,7 @@ jobs:
         run: |-
           mkdir -p .gemini/commands
           cp .github/commands/*.toml .gemini/commands/
+          rm -f GEMINI.md
 
       - name: 'Mint identity token'
         id: 'mint_identity_token'

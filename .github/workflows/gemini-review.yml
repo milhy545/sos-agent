@@ -45,6 +45,7 @@ jobs:
         run: |-
           mkdir -p .gemini/commands
           cp .github/commands/*.toml .gemini/commands/
+          rm -f GEMINI.md
 
       - name: 'Run Gemini pull request review'
         uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude

@@ -36,6 +36,7 @@ jobs:
         run: |-
           mkdir -p .gemini/commands
           cp .github/commands/*.toml .gemini/commands/
+          rm -f GEMINI.md
 
       - name: 'Get repository labels'
         id: 'get_labels'
