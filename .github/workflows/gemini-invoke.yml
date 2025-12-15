@@ -40,6 +40,9 @@ jobs:
             # We explicitly list variables to substitute if needed, or just substitute all
             envsubst < "$file" > ".gemini/commands/$(basename "$file")"
           done
+          
+          echo "DEBUG: Content of gemini-invoke.toml:"
+          cat .gemini/commands/gemini-invoke.toml
 
       - name: 'Mint identity token'
         id: 'mint_identity_token'
