@@ -86,7 +86,7 @@ jobs:
           echo "✅ Found ${ISSUE_COUNT} issue(s) to triage! 🎯"
 
       - name: 'Checkout'
-        uses: 'actions/checkout@v4'
+        uses: 'actions/checkout@v6'
 
       - name: 'Setup Gemini Configuration'
         env:
